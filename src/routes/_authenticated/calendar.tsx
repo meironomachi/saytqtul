@@ -9,7 +9,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { LabelManager, useLabels } from "@/components/diary/LabelManager";
+import { useLabels } from "@/components/diary/LabelManager";
 import { MoodEditor } from "@/components/diary/MoodEditor";
 import { TimetableGrid } from "@/components/diary/TimetableGrid";
 import { Photos, removePhotos } from "@/components/diary/Photos";
@@ -69,7 +69,6 @@ function CalendarPage() {
         <h1 className="text-3xl font-bold">일기장</h1>
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
           <span>{profile?.nickname || user.email}</span>
-          {profile?.approved && <LabelManager />}
           {isAdmin && (
             <Button asChild variant="ghost" size="sm">
               <Link to="/admin">가입 승인</Link>
