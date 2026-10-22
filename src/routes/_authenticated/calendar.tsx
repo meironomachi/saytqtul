@@ -80,7 +80,7 @@ function CalendarPage() {
   );
 }
 
-function EntryPanel({ date, userId, nickname }: { date: Date; userId: string; nickname?: string }) {
+function EntryPanel({ date, userId, nickname }: { date: Date; userId: string; nickname?: string | undefined }) {
   const qc = useQueryClient();
   const day = ymd(date);
   const [editing, setEditing] = useState(false);
@@ -110,11 +110,17 @@ function EntryPanel({ date, userId, nickname }: { date: Date; userId: string; ni
   }, [entry, isLoading]);
 
   async function save() {
-    if (!content.trim()) return toast.error("내용을 적어 주세요.");
+    if (!content.trim()) {
+      toast.error("내용을 적어 주세요.");
+      return;
+    }
     const res = entry
       ? await supabase.from("entries").update({ title, content, updated_at: new Date().toISOString() }).eq("id", entry.id)
       : await supabase.from("entries").insert({ entry_date: day, title, content, user_id: userId });
-    if (res.error) return toast.error("저장하지 못했어요.");
+    if (res.error) {
+      toast.error("저장하지 못했어요.");
+      return;
+    }
     toast.success("저장했어요");
     setEditing(false);
     qc.invalidateQueries({ queryKey: ["entry", day] });
@@ -124,7 +130,10 @@ function EntryPanel({ date, userId, nickname }: { date: Date; userId: string; ni
   async function addComment() {
     if (!comment.trim() || !entry) return;
     const { error } = await supabase.from("comments").insert({ entry_id: entry.id, content: comment, user_id: userId });
-    if (error) return toast.error("댓글을 달지 못했어요.");
+    if (error) {
+      toast.error("댓글을 달지 못했어요.");
+      return;
+    }
     setComment("");
     qc.invalidateQueries({ queryKey: ["comments", entry.id] });
   }
