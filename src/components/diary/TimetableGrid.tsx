@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { LabelManager } from "@/components/diary/LabelManager";
 import { HOURS, minutesByLabel, paintSlot, slotIndex, SLOTS_PER_HOUR, type Label, type Timetable } from "@/lib/diary";
 
 export function TimetableGrid({ labels, value, onChange, readOnly }: { labels: Label[]; value: Timetable; onChange?: (t: Timetable) => void; readOnly?: boolean }) {
@@ -28,10 +29,13 @@ export function TimetableGrid({ labels, value, onChange, readOnly }: { labels: L
 
   return (
     <div className="space-y-3">
-      <h3 className="font-bold">타임테이블</h3>
+      <div className="flex items-center justify-between">
+        <h3 className="font-bold">타임테이블</h3>
+        {!readOnly && <LabelManager kind="activity" buttonLabel="한 일 태그 관리" title="한 일 태그 관리" />}
+      </div>
       {!readOnly && (
         <div className="flex flex-wrap gap-2">
-          {acts.length === 0 && <p className="text-sm text-muted-foreground">'태그 관리'에서 한 일 태그를 만들어 보세요.</p>}
+          {acts.length === 0 && <p className="text-sm text-muted-foreground">'한 일 태그 관리'에서 태그를 만들어 보세요.</p>}
           {acts.map((l) => (
             <button
               key={l.id}

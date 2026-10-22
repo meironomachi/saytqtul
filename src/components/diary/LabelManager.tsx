@@ -5,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Label } from "@/lib/diary";
 
 export function useLabels() {
@@ -16,24 +15,17 @@ export function useLabels() {
   });
 }
 
-export function LabelManager() {
+export function LabelManager({ kind, buttonLabel, title }: { kind: "mood" | "activity"; buttonLabel: string; title: string }) {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm">태그 관리</Button>
+        <Button variant="ghost" size="sm">{buttonLabel}</Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>태그 관리</DialogTitle>
+          <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
-        <Tabs defaultValue="mood">
-          <TabsList className="w-full">
-            <TabsTrigger value="mood" className="flex-1">기분</TabsTrigger>
-            <TabsTrigger value="activity" className="flex-1">한 일</TabsTrigger>
-          </TabsList>
-          <TabsContent value="mood"><KindList kind="mood" /></TabsContent>
-          <TabsContent value="activity"><KindList kind="activity" /></TabsContent>
-        </Tabs>
+        <KindList kind={kind} />
       </DialogContent>
     </Dialog>
   );
