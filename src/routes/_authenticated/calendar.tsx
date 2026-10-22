@@ -9,6 +9,11 @@ import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { LabelManager, useLabels } from "@/components/diary/LabelManager";
+import { MoodEditor } from "@/components/diary/MoodEditor";
+import { TimetableGrid } from "@/components/diary/TimetableGrid";
+import { Photos, removePhotos } from "@/components/diary/Photos";
+import type { Mood, Timetable } from "@/lib/diary";
 
 export const Route = createFileRoute("/_authenticated/calendar")({
   head: () => ({
@@ -64,6 +69,7 @@ function CalendarPage() {
         <h1 className="text-3xl font-bold">일기장</h1>
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
           <span>{profile?.nickname || user.email}</span>
+          {profile?.approved && <LabelManager />}
           {isAdmin && (
             <Button asChild variant="ghost" size="sm">
               <Link to="/admin">가입 승인</Link>
@@ -106,7 +112,11 @@ function EntryPanel({ date, userId, nickname }: { date: Date; userId: string; ni
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [moods, setMoods] = useState<Mood[]>([]);
+  const [timetable, setTimetable] = useState<Timetable>({});
+  const [photos, setPhotos] = useState<string[]>([]);
   const [comment, setComment] = useState("");
+  const { data: labels = [] } = useLabels();
 
   const { data: entry, isLoading } = useQuery({
     queryKey: ["entry", day],
@@ -121,28 +131,45 @@ function EntryPanel({ date, userId, nickname }: { date: Date; userId: string; ni
       (await supabase.from("comments").select("*").eq("entry_id", entry!.id).order("created_at")).data ?? [],
   });
 
+  function resetFromEntry() {
+    setTitle(entry?.title ?? "");
+    setContent(entry?.content ?? "");
+    setMoods((entry?.moods as Mood[] | undefined) ?? []);
+    setTimetable((entry?.timetable as Timetable | undefined) ?? {});
+    setPhotos(entry?.photos ?? []);
+  }
+
   useEffect(() => {
-    if (entry) {
-      setTitle(entry.title);
-      setContent(entry.content);
-    }
+    if (entry) resetFromEntry();
     if (!isLoading && !entry) setEditing(true);
-  }, [entry, isLoading]);
+  }, [entry, isLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function save() {
     if (!content.trim()) {
       toast.error("내용을 적어 주세요.");
       return;
     }
+    const fields = { title, content, moods, timetable, photos };
     const res = entry
-      ? await supabase.from("entries").update({ title, content, updated_at: new Date().toISOString() }).eq("id", entry.id)
-      : await supabase.from("entries").insert({ entry_date: day, title, content, user_id: userId });
+      ? await supabase.from("entries").update({ ...fields, updated_at: new Date().toISOString() }).eq("id", entry.id)
+      : await supabase.from("entries").insert({ ...fields, entry_date: day, user_id: userId });
     if (res.error) {
       toast.error("저장하지 못했어요.");
       return;
     }
     toast.success("저장했어요");
     setEditing(false);
+    qc.invalidateQueries({ queryKey: ["entry", day] });
+    qc.invalidateQueries({ queryKey: ["entry-dates"] });
+  }
+
+  async function removeEntry() {
+    if (!entry || !confirm("이 날의 일기를 삭제할까요? 댓글과 사진도 함께 지워져요.")) return;
+    const { error } = await supabase.from("entries").delete().eq("id", entry.id);
+    if (error) return toast.error("삭제하지 못했어요.");
+    await removePhotos(entry.photos ?? []);
+    toast.success("삭제했어요");
+    setTitle(""); setContent(""); setMoods([]); setTimetable({}); setPhotos([]);
     qc.invalidateQueries({ queryKey: ["entry", day] });
     qc.invalidateQueries({ queryKey: ["entry-dates"] });
   }
@@ -167,17 +194,20 @@ function EntryPanel({ date, userId, nickname }: { date: Date; userId: string; ni
     <section className="paper p-6 sm:p-8">
       <p className="text-sm text-muted-foreground">{format(date, "yyyy년 M월 d일 EEEE", { locale: ko })}</p>
       {isLoading ? null : editing ? (
-        <div className="mt-4 space-y-4">
+        <div className="mt-4 space-y-6">
           <Input placeholder="제목 (선택)" value={title} onChange={(e) => setTitle(e.target.value)} className="font-serif text-lg" />
+          <MoodEditor labels={labels} moods={moods} onChange={setMoods} />
           <Textarea
             placeholder="오늘 있었던 일을 적어 보세요…"
             value={content}
             onChange={(e) => setContent(e.target.value)}
             className="lined min-h-80 resize-y border-none bg-transparent font-serif text-base shadow-none focus-visible:ring-0"
           />
+          <Photos userId={userId} paths={photos} onChange={setPhotos} />
+          <TimetableGrid labels={labels} value={timetable} onChange={setTimetable} />
           <div className="flex justify-end gap-2">
             {entry && (
-              <Button variant="ghost" onClick={() => setEditing(false)}>
+              <Button variant="ghost" onClick={() => { resetFromEntry(); setEditing(false); }}>
                 취소
               </Button>
             )}
@@ -188,11 +218,20 @@ function EntryPanel({ date, userId, nickname }: { date: Date; userId: string; ni
         <>
           <div className="mt-2 flex items-start justify-between gap-4">
             <h2 className="text-2xl font-bold">{entry.title || "제목 없음"}</h2>
-            <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
-              수정
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
+                수정
+              </Button>
+              <Button variant="ghost" size="sm" className="text-destructive" onClick={removeEntry}>
+                삭제
+              </Button>
+            </div>
           </div>
+          {moods.length > 0 && <div className="mt-6"><MoodEditor labels={labels} moods={moods} readOnly /></div>}
           <p className="lined mt-4 whitespace-pre-wrap font-serif">{entry.content}</p>
+          <div className="mt-6"><Photos userId={userId} paths={photos} readOnly /></div>
+          {Object.keys(timetable).length > 0 && <div className="mt-6"><TimetableGrid labels={labels} value={timetable} readOnly /></div>}
+
 
           <div className="mt-10 border-t pt-6">
             <h3 className="mb-4 font-bold">댓글 {comments.length}</h3>
