@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Diary data (entries, comments, profiles) is read/written from the browser client with owner-only RLS; why: single-user private diary needs no server logic.
