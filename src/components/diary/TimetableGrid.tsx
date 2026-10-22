@@ -49,7 +49,12 @@ export function TimetableGrid({ labels, value, onChange, readOnly }: { labels: L
           </button>
         </div>
       )}
-      <div className="select-none touch-none" onPointerLeave={() => undefined}>
+      <div className="select-none touch-none" onPointerMove={(e) => {
+          if (readOnly || painting.current === undefined) return;
+          const el = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null;
+          const slot = el?.dataset.slot;
+          if (slot !== undefined && current.current[slot] !== (painting.current ?? undefined)) apply(Number(slot));
+        }}>
         {HOURS.map((h) => (
           <div key={h} className="flex items-center gap-2">
             <span className="w-6 text-right text-[11px] tabular-nums text-muted-foreground">{String(h).padStart(2, "0")}</span>
@@ -69,7 +74,6 @@ export function TimetableGrid({ labels, value, onChange, readOnly }: { labels: L
                       painting.current = value[s] === brush ? null : brush;
                       apply(s);
                     }}
-                    onPointerEnter={() => !readOnly && apply(s)}
                   />
                 );
               })}
