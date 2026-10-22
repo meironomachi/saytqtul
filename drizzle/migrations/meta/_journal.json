@@ -15,6 +15,13 @@
       "when": 1792696901135,
       "tag": "0001_signup_approval",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792697619840,
+      "tag": "0002_moods_timetable_photos",
+      "breakpoints": true
     }
   ]
 }
