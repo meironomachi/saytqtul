@@ -1,4 +1,5 @@
 import { Slider } from "@/components/ui/slider";
+import { LabelManager } from "@/components/diary/LabelManager";
 import { addMood, MAX_MOODS, type Label, type Mood } from "@/lib/diary";
 
 export function MoodEditor({ labels, moods, onChange, readOnly }: { labels: Label[]; moods: Mood[]; onChange?: (m: Mood[]) => void; readOnly?: boolean }) {
@@ -8,10 +9,13 @@ export function MoodEditor({ labels, moods, onChange, readOnly }: { labels: Labe
 
   return (
     <div className="space-y-3">
-      <h3 className="font-bold">오늘의 기분 {!readOnly && <span className="text-xs font-normal text-muted-foreground">({moods.length}/{MAX_MOODS})</span>}</h3>
+      <div className="flex items-center justify-between">
+        <h3 className="font-bold">오늘의 기분 {!readOnly && <span className="text-xs font-normal text-muted-foreground">({moods.length}/{MAX_MOODS})</span>}</h3>
+        {!readOnly && <LabelManager kind="mood" buttonLabel="기분 태그 관리" title="기분 태그 관리" />}
+      </div>
       {!readOnly && (
         <div className="flex flex-wrap gap-2">
-          {moodLabels.length === 0 && <p className="text-sm text-muted-foreground">'태그 관리'에서 기분 태그를 만들어 보세요.</p>}
+          {moodLabels.length === 0 && <p className="text-sm text-muted-foreground">'기분 태그 관리'에서 기분 태그를 만들어 보세요.</p>}
           {moodLabels.map((l) => {
             const on = moods.some((m) => m.label_id === l.id);
             return (
