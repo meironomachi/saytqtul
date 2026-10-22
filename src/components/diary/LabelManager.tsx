@@ -50,7 +50,7 @@ function KindList({ kind }: { kind: "mood" | "activity" }) {
   async function add() {
     if (!name.trim()) return;
     const { error } = await supabase.from("labels").insert({ kind, name: name.trim(), color });
-    if (error) return toast.error("추가하지 못했어요.");
+    if (error) { toast.error("추가하지 못했어요."); return; }
     setName("");
     refresh();
   }

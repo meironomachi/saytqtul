@@ -45,7 +45,7 @@ export function MoodEditor({ labels, moods, onChange, readOnly }: { labels: Labe
                   value={[m.score]}
                   max={100}
                   step={1}
-                  onValueChange={([v]) => onChange?.(moods.map((x) => (x.label_id === m.label_id ? { ...x, score: v } : x)))}
+                  onValueChange={([v]) => onChange?.(moods.map((x) => (x.label_id === m.label_id ? { ...x, score: v ?? 0 } : x)))}
                 />
               )}
               <span className="w-8 text-right text-sm tabular-nums text-muted-foreground">{m.score}</span>
