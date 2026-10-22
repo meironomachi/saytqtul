@@ -166,7 +166,7 @@ function EntryPanel({ date, userId, nickname }: { date: Date; userId: string; ni
   async function removeEntry() {
     if (!entry || !confirm("이 날의 일기를 삭제할까요? 댓글과 사진도 함께 지워져요.")) return;
     const { error } = await supabase.from("entries").delete().eq("id", entry.id);
-    if (error) return toast.error("삭제하지 못했어요.");
+    if (error) { toast.error("삭제하지 못했어요."); return; }
     await removePhotos(entry.photos ?? []);
     toast.success("삭제했어요");
     setTitle(""); setContent(""); setMoods([]); setTimetable({}); setPhotos([]);
