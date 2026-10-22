@@ -52,6 +52,9 @@ export type Database = {
           created_at: string
           entry_date: string
           id: string
+          moods: Json
+          photos: string[]
+          timetable: Json
           title: string
           updated_at: string
           user_id: string
@@ -61,6 +64,9 @@ export type Database = {
           created_at?: string
           entry_date: string
           id?: string
+          moods?: Json
+          photos?: string[]
+          timetable?: Json
           title?: string
           updated_at?: string
           user_id?: string
@@ -70,8 +76,38 @@ export type Database = {
           created_at?: string
           entry_date?: string
           id?: string
+          moods?: Json
+          photos?: string[]
+          timetable?: Json
           title?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      labels: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          kind: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          kind: string
+          name: string
+          user_id?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          name?: string
           user_id?: string
         }
         Relationships: []
