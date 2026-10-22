@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
@@ -32,7 +32,15 @@ function CalendarPage() {
 
   const { data: profile } = useQuery({
     queryKey: ["profile", user.id],
-    queryFn: async () => (await supabase.from("profiles").select("nickname").eq("id", user.id).maybeSingle()).data,
+    queryFn: async () => (await supabase.from("profiles").select("nickname, approved").eq("id", user.id).maybeSingle()).data,
+  });
+
+  const { data: isAdmin } = useQuery({
+    queryKey: ["is-admin", user.id],
+    queryFn: async () => {
+      const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin");
+      return (data ?? []).length > 0;
+    },
   });
 
   const { data: dates = [] } = useQuery({
@@ -56,11 +64,22 @@ function CalendarPage() {
         <h1 className="text-3xl font-bold">일기장</h1>
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
           <span>{profile?.nickname || user.email}</span>
+          {isAdmin && (
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/admin">가입 승인</Link>
+            </Button>
+          )}
           <Button variant="ghost" size="sm" onClick={signOut}>
             로그아웃
           </Button>
         </div>
       </header>
+      {profile && !profile.approved ? (
+        <div className="paper p-10 text-center">
+          <h2 className="text-xl font-bold">승인을 기다리고 있어요</h2>
+          <p className="mt-2 text-muted-foreground">관리자가 가입을 승인하면 일기를 쓸 수 있어요.</p>
+        </div>
+      ) : (
       <div className="grid gap-6 md:grid-cols-[auto_1fr]">
         <div className="paper h-fit p-2">
           <Calendar
@@ -76,6 +95,7 @@ function CalendarPage() {
         </div>
         <EntryPanel key={ymd(selected)} date={selected} userId={user.id} nickname={profile?.nickname} />
       </div>
+      )}
     </main>
   );
 }

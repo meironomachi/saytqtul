@@ -10,3 +10,4 @@
 <!-- LOVABLE:END -->
 
 - Diary data (entries, comments, profiles) is read/written from the browser client with owner-only RLS; why: single-user private diary needs no server logic.
+- Signup approval: profiles.approved is changed only via approve_user() (admin via user_roles); diary RLS requires is_approved(); first account becomes admin; why: users must not self-approve.
