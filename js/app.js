@@ -1,10 +1,10 @@
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js?v=202610231540";
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js?v=202610231546";
 import {
   MAX_MOODS, HOURS, SLOTS_PER_HOUR, WEATHER, addMood, slotIndex, paintRange, minutesByLabel, durationText, shortDuration,
   draftKey, readDraft, searchEntries, monthlyReport, ymd, parseDay, addDays, isDay, monthCells, safeColor,
   kstParts, yearMark, clockText, clockOffset, plainText, readingSlots, mergeReading,
-} from "./diary.js?v=202610231540";
-import { richEditor, toHtml } from "./richtext.js?v=202610231540";
+} from "./diary.js?v=202610231546";
+import { richEditor, toHtml } from "./richtext.js?v=202610231546";
 
 const BUCKET = "diary-photos";
 const app = document.getElementById("app");
@@ -824,6 +824,8 @@ async function start() {
   }
   sb = window.__DIARY_TEST_CLIENT__ ?? (await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm"))
     .createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { flowType: "pkce", detectSessionInUrl: true, persistSession: true } });
+  window.__meiroSb = sb; // 페이지 아래 FEEDBACK 칸도 같은 로그인을 씀
+  dispatchEvent(new Event("meiro-sb"));
 
   // 비밀번호 찾기 메일의 링크로 돌아오면 새 비밀번호 화면으로
   let recovery = false;
