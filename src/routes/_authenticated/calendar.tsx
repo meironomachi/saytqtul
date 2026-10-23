@@ -21,7 +21,7 @@ import { DiaryNav } from "@/components/diary/DiaryNav";
 
 export const Route = createFileRoute("/_authenticated/calendar")({
   validateSearch: (search: Record<string, unknown>): { date?: string } => {
-    const value = typeof search.date === "string" ? search.date : undefined;
+    const value = typeof search['date'] === "string" ? search['date'] : undefined;
     return value && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00`)) ? { date: value } : {};
   },
   head: () => ({
