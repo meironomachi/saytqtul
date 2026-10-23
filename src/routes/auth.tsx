@@ -14,6 +14,8 @@ export const Route = createFileRoute("/auth")({
       { name: "description", content: "일기장에 로그인하거나 가입하세요" },
       { property: "og:title", content: "로그인 — 일기장" },
       { property: "og:description", content: "일기장에 로그인하거나 가입하세요" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: AuthPage,
