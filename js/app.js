@@ -1,10 +1,10 @@
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js?v=202610230557";
 import {
   MAX_MOODS, HOURS, SLOTS_PER_HOUR, WEATHER, addMood, slotIndex, paintRange, minutesByLabel, durationText, shortDuration,
   draftKey, readDraft, searchEntries, monthlyReport, ymd, parseDay, addDays, isDay, monthCells, safeColor,
   kstParts, yearMark, clockText, clockOffset, plainText,
-} from "./diary.js";
-import { richEditor, toHtml } from "./richtext.js";
+} from "./diary.js?v=202610230557";
+import { richEditor, toHtml } from "./richtext.js?v=202610230557";
 
 const BUCKET = "diary-photos";
 const app = document.getElementById("app");
