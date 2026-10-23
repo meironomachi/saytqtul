@@ -215,6 +215,18 @@ dialog h2 { font-size: 18px; margin-bottom: 16px; }
 input[type="color"] { width: 36px; height: 36px; flex: none; padding: 2px; border: 1px solid var(--border); border-radius: 6px; background: none; cursor: pointer; }
 .dialog-close { position: absolute; top: 12px; right: 12px; }
 
+/* 라이트/다크 전환 버튼 */
+.theme-btn span { display: inline-flex; }
+.theme-btn .sun { display: none; }
+:root[data-theme="dark"] .theme-btn .sun { display: inline-flex; }
+:root[data-theme="dark"] .theme-btn .moon { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .theme-btn .sun { display: inline-flex; }
+  :root:not([data-theme="light"]) .theme-btn .moon { display: none; }
+}
+.theme-btn.corner { position: fixed; z-index: 20; top: calc(16px + env(safe-area-inset-top, 0px)); right: max(16px, env(safe-area-inset-right, 0px));
+  width: 36px; height: 36px; padding: 0; border-radius: 999px; border-color: var(--border); background: var(--card); color: var(--fg); }
+
 .notice { padding: 40px; text-align: center; }
 .notice h2 { font-size: 20px; }
 .notice p { margin: 8px 0 0; color: var(--muted-fg); }

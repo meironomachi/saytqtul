@@ -46,6 +46,7 @@ const ICON = {
   windy: '<path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2M9.6 4.6A2 2 0 1 1 11 8H2M12.6 19.4A2 2 0 1 0 14 16H2"/>',
   eraser: '<path d="m7 21-4.3-4.3a1 1 0 0 1 0-1.4l10-10a1 1 0 0 1 1.4 0l5.6 5.6a1 1 0 0 1 0 1.4L11 21"/><path d="M22 21H7M5 11l9 9"/>',
   moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
 };
 const icon = (name) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[name]}</svg>`;
 
@@ -101,7 +102,7 @@ function shell(current, inner, { heading = "일기장", wide = true, headExtra =
       <div class="who">
         <span>${esc(name)}</span>
         ${state.isAdmin ? '<a class="btn ghost sm" href="#/admin">가입 승인</a>' : ""}
-        <button class="btn ghost sm" type="button" data-act="theme" aria-label="화면 테마 바꾸기">${icon("moon")}</button>
+        ${themeButton()}
         <button class="btn ghost sm" type="button" data-act="logout">로그아웃</button>
       </div>
     </header>
@@ -115,20 +116,24 @@ function bindShell() {
     await sb.auth.signOut();
     go("#/auth", true);
   });
-  $('[data-act="theme"]')?.addEventListener("click", () => {
-    const root = document.documentElement;
-    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
-    root.dataset.theme = dark ? "light" : "dark";
-    try { localStorage.setItem("meiro-theme", root.dataset.theme); } catch { /* 테마 기억은 선택 사항 */ }
-  });
 }
+
+// 라이트/다크 전환. 선택은 meiro.kr 전체가 같이 씀. 라이트에선 달, 다크에선 해 아이콘
+const themeButton = (extra = "") => `<button class="btn ghost sm theme-btn ${extra}" type="button" data-act="theme" aria-label="라이트/다크 모드 바꾸기" title="라이트/다크 모드 바꾸기"><span class="moon">${icon("moon")}</span><span class="sun">${icon("sun")}</span></button>`;
+document.addEventListener("click", (e) => {
+  if (!e.target.closest('[data-act="theme"]')) return;
+  const root = document.documentElement;
+  const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  root.dataset.theme = dark ? "light" : "dark";
+  try { localStorage.setItem("meiro-theme", root.dataset.theme); } catch { /* 테마 기억은 선택 사항 */ }
+});
 
 const waiting = () => `<div class="paper notice"><h2>승인을 기다리고 있어요</h2><p>관리자가 가입을 승인하면 일기를 쓸 수 있어요.</p></div>`;
 
 /* ---------- 첫 화면 ---------- */
 function renderHome() {
   document.title = "일기장 — 나의 하루를 적어요";
-  app.innerHTML = `<main class="hero">
+  app.innerHTML = `${themeButton("corner")}<main class="hero">
     <p class="eyebrow">MY DIARY</p>
     <h1>일기장</h1>
     <p>오늘 하루는 어땠나요?</p>
@@ -141,7 +146,7 @@ function renderAuth() {
   document.title = "로그인 — 일기장";
   let mode = "in";
   const draw = () => {
-    app.innerHTML = `<main class="auth"><div class="paper">
+    app.innerHTML = `${themeButton("corner")}<main class="auth"><div class="paper">
       <h1><a href="#/">일기장</a></h1>
       <p class="muted small" style="text-align:center;margin:8px 0 0">${mode === "in" ? "다시 오신 걸 환영해요" : "새 일기장을 만들어요"}</p>
       <form id="auth-form">
