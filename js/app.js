@@ -2,8 +2,9 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 import {
   MAX_MOODS, HOURS, SLOTS_PER_HOUR, WEATHER, addMood, slotIndex, paintRange, minutesByLabel, durationText, shortDuration,
   draftKey, readDraft, searchEntries, monthlyReport, ymd, parseDay, addDays, isDay, monthCells, safeColor,
-  kstParts, yearMark, clockText, clockOffset,
+  kstParts, yearMark, clockText, clockOffset, plainText,
 } from "./diary.js";
+import { richEditor, toHtml } from "./richtext.js";
 
 const BUCKET = "diary-photos";
 const app = document.getElementById("app");
@@ -94,11 +95,11 @@ const TABS = [
   { path: "/timeline", label: "타임라인", icon: "list" },
 ];
 
-function shell(current, inner, { heading = "일기장", wide = true, headExtra = "" } = {}) {
+function shell(current, inner, { wide = true, headExtra = "" } = {}) {
   const name = state.profile?.nickname || state.user.email;
   return `<main class="wrap ${wide ? "" : "narrow"}">
     <header class="top">
-      <h1>${current === "/calendar" ? `<a href="#/">${esc(heading)}</a>` : esc(heading)}</h1>
+      <div class="brand"><h1><a href="#/" aria-label="첫 화면으로">${brandMark()}</a></h1><time class="brand-clock" data-clock>${clockText(nowMs())}</time></div>
       ${headExtra}
       <div class="who">
         <span>${esc(name)}</span>
@@ -132,6 +133,23 @@ document.addEventListener("click", (e) => {
 const waiting = () => `<div class="paper notice"><h2>승인을 기다리고 있어요</h2><p>관리자가 가입을 승인하면 일기를 쓸 수 있어요.</p></div>`;
 
 /* ---------- 첫 화면 ---------- */
+// 화면 곳곳의 STDL ’26, 현재 시각을 1초마다 함께 갱신 (data-year, data-clock, data-clock-src)
+const nowMs = () => Date.now() + (clock?.offset ?? 0);
+const brandMark = () => `STDL <span data-year>${yearMark(kstParts(nowMs()).y)}</span>`;
+function tickClocks() {
+  const t = nowMs();
+  $$("[data-clock]").forEach((el) => { el.textContent = clockText(t); });
+  $$("[data-year]").forEach((el) => { el.textContent = yearMark(kstParts(t).y); });
+  $$("[data-clock-src]").forEach((el) => {
+    el.textContent = !clock ? "한국 표준시" : clock.error === null ? "기기 시계 기준" : `표준시 서버 기준 · 오차 ±${(clock.error / 1000).toFixed(2)}초`;
+  });
+}
+function startClocks() {
+  const loop = () => { tickClocks(); setTimeout(loop, 1000 - (nowMs() % 1000) + 5); }; // 초가 바뀌는 순간에 맞춤
+  loop();
+  syncClock().then(tickClocks);
+}
+
 // 서버(표준시에 맞춰진 Supabase) 시각과 기기 시계의 차이. 한 번 맞추면 다시 쓰지 않음
 let clock = null;
 async function syncClock() {
@@ -150,29 +168,14 @@ async function syncClock() {
 
 function renderHome() {
   document.title = "STDL — 나의 하루를 적어요";
-  const now = () => Date.now() + (clock?.offset ?? 0);
   app.innerHTML = `${themeButton("corner")}<main class="hero">
     <p class="eyebrow">MY DIARY</p>
-    <h1 class="mark">STDL <span id="year">${yearMark(kstParts(now()).y)}</span></h1>
-    <p class="clock"><time id="clock">${clockText(now())}</time><span id="clock-src">한국 표준시</span></p>
+    <h1 class="mark">${brandMark()}</h1>
+    <p class="clock"><time data-clock></time><span data-clock-src>한국 표준시</span></p>
     <p>오늘 하루는 어땠나요?</p>
     <a class="btn primary lg" href="#/calendar">적으러 가기</a>
   </main>`;
-  let timer;
-  const tick = () => {
-    const t = now();
-    $("#clock").textContent = clockText(t);
-    $("#year").textContent = yearMark(kstParts(t).y);
-    timer = setTimeout(tick, 1000 - (t % 1000) + 5); // 초가 바뀌는 순간에 맞춤
-  };
-  tick();
-  leaveHook = () => clearTimeout(timer);
-  syncClock().then((c) => {
-    const src = $("#clock-src");
-    if (!src) return;
-    src.textContent = c.error === null ? "기기 시계 기준" : `표준시 서버 기준 · 오차 ±${(c.error / 1000).toFixed(2)}초`;
-    clearTimeout(timer); tick();
-  });
+  tickClocks();
 }
 
 /* ---------- 로그인 / 가입 ---------- */
@@ -310,15 +313,15 @@ async function entryPanel(root, day, date, onWrittenChange) {
         <div id="weather"></div>
         <div id="moods"></div>
         <div id="photos"></div>
-        <textarea class="lined" id="content" placeholder="오늘 있었던 일을 적어 보세요…" aria-label="내용">${esc(f.content)}</textarea>
-        <div id="timetable"></div>
+        <div id="content"></div>
+        <div class="tt-box" id="timetable"></div>
         <div class="actions">
           ${entry ? '<button class="btn ghost" type="button" id="cancel">취소</button>' : ""}
           <button class="btn primary" type="button" id="save">저장</button>
         </div>
       </div>`;
     $("#title", root).oninput = (e) => { f.title = e.target.value; changed(); };
-    $("#content", root).oninput = (e) => { f.content = e.target.value; changed(); };
+    richEditor($("#content", root), f.content, (v) => { f.content = v; changed(); });
     weatherEditor($("#weather", root));
     moodEditor($("#moods", root));
     photosBlock($("#photos", root), true);
@@ -340,8 +343,8 @@ async function entryPanel(root, day, date, onWrittenChange) {
       </div>
       ${f.moods.length ? '<div id="moods" style="margin-top:24px"></div>' : ""}
       <div id="photos" style="margin-top:24px"></div>
-      <p class="content lined">${esc(entry.content)}</p>
-      ${Object.keys(f.timetable).length ? '<div id="timetable" style="margin-top:24px"></div>' : ""}
+      <div class="content lined">${toHtml(entry.content)}</div>
+      ${Object.keys(f.timetable).length ? '<details class="tt-box" id="timetable"></details>' : ""}
       <div class="comments" id="comments"></div>`;
     $("#edit", root).onclick = () => { editing = true; draw(); };
     $("#del", root).onclick = removeEntry;
@@ -352,7 +355,7 @@ async function entryPanel(root, day, date, onWrittenChange) {
   }
 
   async function save() {
-    if (!f.content.trim()) { toast("내용을 적어 주세요.", "error"); return; }
+    if (!plainText(f.content).trim()) { toast("내용을 적어 주세요.", "error"); return; }
     const btn = $("#save", root);
     btn.disabled = true; btn.textContent = "저장 중…";
     const fields = { title: f.title, content: f.content, moods: f.moods, timetable: f.timetable, photos: f.photos, weather: f.weather };
@@ -460,7 +463,9 @@ async function entryPanel(root, day, date, onWrittenChange) {
     const byId = new Map(state.labels.map((l) => [l.id, l]));
     if (editable && el.dataset.brush === undefined) el.dataset.brush = acts[0]?.id ?? "";
     const brush = () => el.dataset.brush || null;
-    el.innerHTML = `<div class="section-head"><h3>타임테이블</h3>${editable ? '<button class="btn ghost sm" type="button" id="act-manage">한 일 태그 관리</button>' : ""}</div>
+    const summary = () => Object.entries(minutesByLabel(f.timetable)).map(([id, min]) => byId.get(id) ? `${esc(byId.get(id).name)} ${shortDuration(min)}` : "").filter(Boolean).join(" · ");
+    el.innerHTML = `${editable ? '<div class="section-head"><h3>타임테이블</h3><button class="btn ghost sm" type="button" id="act-manage">한 일 태그 관리</button></div>'
+      : `<summary><span class="tt-title">타임테이블</span><span class="tt-sum">${summary()}</span></summary>`}
       ${editable ? `<div class="chips" style="margin-bottom:12px">${acts.length ? acts.map((l) =>
         `<button class="btn outline sm" type="button" data-b="${l.id}" aria-pressed="${brush() === l.id}"><span class="swatch" style="background:${l.color}"></span>${esc(l.name)}</button>`).join("")
         : `<p class="empty-hint">'한 일 태그 관리'에서 태그를 만들어 보세요.</p>`}
@@ -470,8 +475,9 @@ async function entryPanel(root, day, date, onWrittenChange) {
           const s = slotIndex(h, p), l = byId.get(f.timetable[s]);
           return `<button type="button" data-slot="${s}" ${editable ? "" : 'aria-disabled="true" tabindex="-1"'} aria-label="${h}시 ${p * 10}분${l ? ` ${esc(l.name)}` : ""}" style="${l ? `background:${l.color}` : ""}"></button>`;
         }).join("")}</div></div>`).join("")}</div>
-      <ul class="totals"></ul>`;
+      ${editable ? '<ul class="totals"></ul>' : ""}`;
     const drawTotals = () => {
+      if (!editable) return;
       $(".totals", el).innerHTML = Object.entries(minutesByLabel(f.timetable)).map(([id, min]) => {
         const l = byId.get(id);
         return l ? `<li><span class="swatch" style="background:${l.color}"></span>${esc(l.name)} ${shortDuration(min)}</li>` : "";
@@ -592,7 +598,7 @@ function entryList(entries, { thumbs = false } = {}) {
       ${first ? `<a class="thumb" href="#/calendar?date=${e.entry_date}" data-p="${esc(first)}" aria-label="${e.entry_date} 일기 열기"></a>` : ""}
       <div class="row"><time>${e.entry_date.replaceAll("-", ".")}</time>${w ? `<span class="weather">${icon(w.id)}${w.name}</span>` : ""}</div>
       <a class="t" href="#/calendar?date=${e.entry_date}">${esc(e.title || "제목 없음")}</a>
-      <p class="excerpt">${esc(e.content)}</p>
+      <p class="excerpt">${esc(plainText(e.content))}</p>
       <div class="tags">${e.moods.map((m) => { const l = byId.get(m.label_id); return l ? `<span><i class="dot" style="background:${l.color}"></i>${esc(l.name)} ${m.score}</span>` : ""; }).join("")}
         ${total ? `<span class="muted">활동 ${durationText(total)}</span>` : ""}</div>
     </li>`;
@@ -600,8 +606,8 @@ function entryList(entries, { thumbs = false } = {}) {
 }
 
 async function guardedPage(path, heading, build) {
-  if (state.profile && !state.profile.approved) { app.innerHTML = shell(path, waiting(), { heading }); bindShell(); return; }
-  app.innerHTML = shell(path, '<p class="muted">불러오는 중…</p>', { heading, wide: path === "/reports" });
+  if (state.profile && !state.profile.approved) { app.innerHTML = shell(path, waiting()); bindShell(); return; }
+  app.innerHTML = shell(path, '<p class="muted">불러오는 중…</p>', { wide: path === "/reports" });
   bindShell();
   const [entries] = await Promise.all([loadEntries(), loadLabels()]);
   build(entries);
@@ -707,7 +713,8 @@ async function loadThumbs() {
 /* ---------- 가입 승인 ---------- */
 async function renderAdmin() {
   document.title = "가입 승인 — 일기장";
-  app.innerHTML = `<main class="wrap narrow"><header class="top"><h1>가입 승인</h1><a class="btn ghost sm" href="#/calendar">달력으로</a></header><ul class="paper people" id="people"></ul></main>`;
+  app.innerHTML = `<main class="wrap narrow"><header class="top"><div class="brand"><h1><a href="#/" aria-label="첫 화면으로">${brandMark()}</a></h1><time class="brand-clock" data-clock>${clockText(nowMs())}</time></div><a class="btn ghost sm" href="#/calendar">달력으로</a></header>
+    <h2 class="page-title">가입 승인</h2><ul class="paper people" id="people"></ul></main>`;
   const draw = async () => {
     const { data } = await sb.from("profiles").select("id, nickname, email, approved, created_at").order("created_at", { ascending: false });
     const people = data ?? [];
@@ -769,6 +776,7 @@ async function start() {
   });
   window.addEventListener("hashchange", route);
   route();
+  startClocks();
 }
 
 start();

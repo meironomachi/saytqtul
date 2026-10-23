@@ -66,7 +66,7 @@ export function readDraft(raw, savedAt) {
 export function searchEntries(entries, query, labelId = "", from = "", to = "") {
   const needle = query.trim().toLocaleLowerCase();
   return entries.filter((e) =>
-    (!needle || `${e.title}\n${e.content}`.toLocaleLowerCase().includes(needle)) &&
+    (!needle || `${e.title}\n${plainText(e.content)}`.toLocaleLowerCase().includes(needle)) &&
     (!from || e.entry_date >= from) && (!to || e.entry_date <= to) &&
     (!labelId || e.moods.some((m) => m.label_id === labelId) || Object.values(e.timetable).includes(labelId)),
   ).sort((a, b) => b.entry_date.localeCompare(a.entry_date));
@@ -129,4 +129,21 @@ export function clockOffset(samples) {
   if (!ok.length) return null;
   const best = ok.reduce((a, b) => (b.received - b.sent < a.received - a.sent ? b : a));
   return { offset: best.server - (best.sent + best.received) / 2, error: (best.received - best.sent) / 2 };
+}
+
+/* ---------- 서식 있는 본문 ---------- */
+// 서식 있는 본문은 이 표시로 시작하는 HTML로 저장. 표시가 없으면 예전 방식의 그냥 글
+export const RICH_MARK = "<!--rich-->";
+export const isRich = (content) => typeof content === "string" && content.startsWith(RICH_MARK);
+
+const ENTITIES = { "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": '"', "&#39;": "'", "&nbsp;": " " };
+/** 검색, 미리보기, 빈 글 확인용 글자만 뽑기 */
+export function plainText(content) {
+  if (!isRich(content)) return content ?? "";
+  return content.slice(RICH_MARK.length)
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(div|p)>/gi, "\n")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&(amp|lt|gt|quot|#39|nbsp);/g, (m) => ENTITIES[m])
+    .replace(/\n+$/, "");
 }

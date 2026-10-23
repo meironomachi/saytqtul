@@ -78,3 +78,15 @@ test("첫 화면 시계: 한국 시간, 연도 표시, 서버 시각 보정", as
   assert.deepEqual(r, { offset: 5250, error: 50 });
   assert.equal(clockOffset([]), null);
 });
+
+test("서식 있는 본문: 예전 글은 그대로, 서식 글은 글자만 뽑아 검색", async () => {
+  const { isRich, plainText, RICH_MARK, searchEntries } = await import("../js/diary.js");
+  assert.equal(isRich("그냥 <b>글</b>"), false);
+  assert.equal(plainText("그냥 <b>글</b>"), "그냥 <b>글</b>"); // 예전 글은 꺾쇠도 글자 그대로
+  const rich = `${RICH_MARK}<div><b>굵은</b> 글 &amp; <mark>형광</mark></div><div>둘째 줄<br></div>`;
+  assert.equal(isRich(rich), true);
+  assert.equal(plainText(rich), "굵은 글 & 형광\n둘째 줄");
+  const list = [{ id: "r", entry_date: "2026-10-24", title: "", content: rich, moods: [], timetable: {} }];
+  assert.equal(searchEntries(list, "형광").length, 1);
+  assert.equal(searchEntries(list, "mark").length, 0); // 태그 이름으로는 안 찾아짐
+});
