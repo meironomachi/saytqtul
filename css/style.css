@@ -58,7 +58,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
 .btn.danger { color: var(--danger); }
 .btn.sm { padding: 4px 10px; font-size: 13px; }
 .btn.lg { padding: 12px 40px; font-size: 16px; border-radius: 999px; }
-.btn[aria-pressed="true"] { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
+.btn[aria-pressed="true"], .btn[aria-pressed="true"]:hover { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
 .btn:disabled { opacity: .45; cursor: default; }
 
 .input { width: 100%; border: 1px solid var(--border); border-radius: 8px; background: var(--card); padding: 8px 12px; min-width: 0; }

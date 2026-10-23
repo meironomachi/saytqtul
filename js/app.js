@@ -1,10 +1,10 @@
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js?v=202610231518";
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js?v=202610231527";
 import {
   MAX_MOODS, HOURS, SLOTS_PER_HOUR, WEATHER, addMood, slotIndex, paintRange, minutesByLabel, durationText, shortDuration,
   draftKey, readDraft, searchEntries, monthlyReport, ymd, parseDay, addDays, isDay, monthCells, safeColor,
   kstParts, yearMark, clockText, clockOffset, plainText, readingSlots, mergeReading,
-} from "./diary.js?v=202610231518";
-import { richEditor, toHtml } from "./richtext.js?v=202610231518";
+} from "./diary.js?v=202610231527";
+import { richEditor, toHtml } from "./richtext.js?v=202610231527";
 
 const BUCKET = "diary-photos";
 const app = document.getElementById("app");
@@ -819,13 +819,13 @@ async function renderAdmin() {
   draw();
 }
 
-/** 계정 삭제: 닉네임을 그대로 입력해야 지워짐. 일기·사진·서재·가계부 기록도 함께 지워짐 */
+/** 계정 삭제: 닉네임을 그대로 입력해야 지워짐. 일기·사진·서재·가계부·노트 기록도 함께 지워짐 */
 function removeAccount(p, done) {
   const name = p.nickname || p.email;
   const dlg = document.createElement("dialog");
   dlg.innerHTML = `<form method="dialog" class="danger-form">
     <h2>계정 삭제</h2>
-    <p><b>${esc(name)}</b> (${esc(p.email)}) 계정을 지워요. 이 사람의 일기, 사진, 댓글, 서재, 가계부 기록도 모두 지워지고 <b>되돌릴 수 없어요.</b></p>
+    <p><b>${esc(name)}</b> (${esc(p.email)}) 계정을 지워요. 이 사람의 일기, 사진, 댓글, 서재, 가계부, 노트 기록도 모두 지워지고 <b>되돌릴 수 없어요.</b></p>
     <label class="field"><span>확인을 위해 <b>${esc(name)}</b>을(를) 그대로 입력해 주세요</span><input class="input" id="confirm-name" autocomplete="off"></label>
     <div class="actions"><button class="btn ghost" type="button" value="cancel">취소</button><button class="btn danger-fill" type="submit" id="do-remove" disabled>삭제</button></div>
   </form>`;
