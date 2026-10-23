@@ -148,7 +148,7 @@ export function plainText(content) {
     .replace(/\n+$/, "");
 }
 
-/* ---------- STDL 圖書館 독서 기록 → 타임테이블 ---------- */
+/* ---------- MEIROBOOK 독서 기록 → 타임테이블 ---------- */
 /** 독서 기록 중 그날(새벽 6시~다음 날 6시) 타임테이블 칸. 한 칸(10분)에서 5분 이상 읽었으면 칠함 */
 export function readingSlots(sessions, day, now = Date.now()) {
   const dayStart = Date.parse(`${day}T00:00:00Z`) - 9 * 3600 * 1000 + START_HOUR * 3600 * 1000;

@@ -17,7 +17,7 @@ const db = {
   ],
   entries: [],
   comments: [],
-  // STDL 圖書館 독서 기록: 10.23 한국 21:10~21:52 (21:30~21:40 멈춤), 10.24 새벽 0:30~1:00
+  // MEIROBOOK 독서 기록: 10.23 한국 21:10~21:52 (21:30~21:40 멈춤), 10.24 새벽 0:30~1:00
   reading_sessions: [
     { id: "r1", user_id: uid, book_id: "b", started_at: "2026-10-23T12:10:00Z", ended_at: "2026-10-23T12:52:00Z", pauses: [{ from: "2026-10-23T12:30:00Z", to: "2026-10-23T12:40:00Z" }] },
     { id: "r2", user_id: uid, book_id: "b", started_at: "2026-10-23T15:30:00Z", ended_at: "2026-10-23T16:00:00Z", pauses: [] },
