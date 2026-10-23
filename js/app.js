@@ -1,10 +1,10 @@
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js?v=202610230557";
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js?v=202610230559";
 import {
   MAX_MOODS, HOURS, SLOTS_PER_HOUR, WEATHER, addMood, slotIndex, paintRange, minutesByLabel, durationText, shortDuration,
   draftKey, readDraft, searchEntries, monthlyReport, ymd, parseDay, addDays, isDay, monthCells, safeColor,
   kstParts, yearMark, clockText, clockOffset, plainText,
-} from "./diary.js?v=202610230557";
-import { richEditor, toHtml } from "./richtext.js?v=202610230557";
+} from "./diary.js?v=202610230559";
+import { richEditor, toHtml } from "./richtext.js?v=202610230559";
 
 const BUCKET = "diary-photos";
 const app = document.getElementById("app");
@@ -231,7 +231,7 @@ async function renderCalendar(params) {
   }
   app.innerHTML = shell("/calendar", `<div class="cal-layout">
       <div class="paper cal" id="cal"></div>
-      <div style="min-width:0">
+      <div class="cal-main">
         <div class="daynav">
           <a class="btn outline sm" href="#/calendar?date=${ymd(addDays(selected, -1))}">${icon("left")}어제</a>
           <a class="btn ghost sm" href="#/calendar?date=${ymd(new Date())}">오늘</a>
@@ -239,6 +239,7 @@ async function renderCalendar(params) {
         </div>
         <section class="paper entry" id="entry"><p class="date">${longDate(selected)}</p></section>
       </div>
+      <section class="paper tt-side" id="tt-side" aria-label="타임테이블" hidden></section>
     </div>`);
   bindShell();
 
@@ -314,7 +315,6 @@ async function entryPanel(root, day, date, onWrittenChange) {
         <div id="moods"></div>
         <div id="photos"></div>
         <div id="content"></div>
-        <div class="tt-box" id="timetable"></div>
         <div class="actions">
           ${entry ? '<button class="btn ghost" type="button" id="cancel">취소</button>' : ""}
           <button class="btn primary" type="button" id="save">저장</button>
@@ -325,7 +325,7 @@ async function entryPanel(root, day, date, onWrittenChange) {
     weatherEditor($("#weather", root));
     moodEditor($("#moods", root));
     photosBlock($("#photos", root), true);
-    timetableBlock($("#timetable", root), true);
+    showTimetable(true);
     $("#cancel", root)?.addEventListener("click", () => { clearDraft(); restored = false; f = fromEntry(); editing = false; draw(); });
     $("#save", root).onclick = save;
   }
@@ -344,13 +344,12 @@ async function entryPanel(root, day, date, onWrittenChange) {
       ${f.moods.length ? '<div id="moods" style="margin-top:24px"></div>' : ""}
       <div id="photos" style="margin-top:24px"></div>
       <div class="content lined">${toHtml(entry.content)}</div>
-      ${Object.keys(f.timetable).length ? '<details class="tt-box" id="timetable"></details>' : ""}
       <div class="comments" id="comments"></div>`;
     $("#edit", root).onclick = () => { editing = true; draw(); };
     $("#del", root).onclick = removeEntry;
     if (f.moods.length) moodView($("#moods", root));
     photosBlock($("#photos", root), false);
-    if (Object.keys(f.timetable).length) timetableBlock($("#timetable", root), false);
+    showTimetable(false);
     commentsBlock($("#comments", root));
   }
 
@@ -458,14 +457,21 @@ async function entryPanel(root, day, date, onWrittenChange) {
   }
 
   /* 타임테이블 */
+  // 타임테이블은 일기 본문과 떨어진 자리(PC: 달력 아래, 휴대폰: 일기 아래)에 그림
+  function showTimetable(editable) {
+    const side = $("#tt-side");
+    if (!side) return;
+    side.hidden = !editable && !Object.keys(f.timetable).length;
+    if (side.hidden) side.innerHTML = "";
+    else timetableBlock(side, editable);
+  }
+
   function timetableBlock(el, editable) {
     const acts = state.labels.filter((l) => l.kind === "activity");
     const byId = new Map(state.labels.map((l) => [l.id, l]));
     if (editable && el.dataset.brush === undefined) el.dataset.brush = acts[0]?.id ?? "";
     const brush = () => el.dataset.brush || null;
-    const summary = () => Object.entries(minutesByLabel(f.timetable)).map(([id, min]) => byId.get(id) ? `${esc(byId.get(id).name)} ${shortDuration(min)}` : "").filter(Boolean).join(" · ");
-    el.innerHTML = `${editable ? '<div class="section-head"><h3>타임테이블</h3><button class="btn ghost sm" type="button" id="act-manage">한 일 태그 관리</button></div>'
-      : `<summary><span class="tt-title">타임테이블</span><span class="tt-sum">${summary()}</span></summary>`}
+    el.innerHTML = `<div class="section-head"><h3>타임테이블</h3>${editable ? '<button class="btn ghost sm" type="button" id="act-manage">한 일 태그 관리</button>' : ""}</div>
       ${editable ? `<div class="chips" style="margin-bottom:12px">${acts.length ? acts.map((l) =>
         `<button class="btn outline sm" type="button" data-b="${l.id}" aria-pressed="${brush() === l.id}"><span class="swatch" style="background:${l.color}"></span>${esc(l.name)}</button>`).join("")
         : `<p class="empty-hint">'한 일 태그 관리'에서 태그를 만들어 보세요.</p>`}
@@ -475,9 +481,8 @@ async function entryPanel(root, day, date, onWrittenChange) {
           const s = slotIndex(h, p), l = byId.get(f.timetable[s]);
           return `<button type="button" data-slot="${s}" ${editable ? "" : 'aria-disabled="true" tabindex="-1"'} aria-label="${h}시 ${p * 10}분${l ? ` ${esc(l.name)}` : ""}" style="${l ? `background:${l.color}` : ""}"></button>`;
         }).join("")}</div></div>`).join("")}</div>
-      ${editable ? '<ul class="totals"></ul>' : ""}`;
+      <ul class="totals"></ul>`;
     const drawTotals = () => {
-      if (!editable) return;
       $(".totals", el).innerHTML = Object.entries(minutesByLabel(f.timetable)).map(([id, min]) => {
         const l = byId.get(id);
         return l ? `<li><span class="swatch" style="background:${l.color}"></span>${esc(l.name)} ${shortDuration(min)}</li>` : "";

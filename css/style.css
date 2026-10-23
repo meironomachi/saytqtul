@@ -101,8 +101,14 @@ label.field { display: grid; gap: 4px; font-size: 13px; color: var(--muted-fg); 
 .tabs a[aria-current="page"] { background: var(--accent); color: var(--accent-fg); }
 
 /* 달력 */
-.cal-layout { display: grid; gap: 24px; align-items: start; grid-template-columns: minmax(0, 1fr); }
-@media (min-width: 820px) { .cal-layout { grid-template-columns: 320px minmax(0, 1fr); } }
+/* 휴대폰: 달력 → 일기 → 타임테이블, PC: 왼쪽에 달력과 타임테이블, 오른쪽에 일기 */
+.cal-layout { display: grid; gap: 24px; align-items: start; grid-template-columns: minmax(0, 1fr); grid-template-areas: "cal" "main" "tt"; }
+.cal-layout .cal { grid-area: cal; }
+.cal-layout .cal-main { grid-area: main; min-width: 0; }
+.cal-layout .tt-side { grid-area: tt; padding: 16px; }
+@media (min-width: 820px) {
+  .cal-layout { grid-template-columns: 320px minmax(0, 1fr); grid-template-rows: auto 1fr; grid-template-areas: "cal main" "tt main"; }
+}
 .cal { padding: 12px; }
 .cal-head { display: flex; align-items: center; justify-content: space-between; padding: 4px 4px 10px; font-weight: 700; }
 .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
@@ -170,22 +176,13 @@ label.field { display: grid; gap: 4px; font-size: 13px; color: var(--muted-fg); 
 .photo .btn { position: absolute; top: 4px; right: 4px; background: var(--card); }
 
 /* 타임테이블 */
-.tt-box { margin-top: 32px; padding: 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--muted); }
-details.tt-box { padding: 0; }
-details.tt-box summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; padding: 12px 16px; cursor: pointer; list-style: none; }
-details.tt-box summary::-webkit-details-marker { display: none; }
-details.tt-box summary::before { content: "▸"; color: var(--muted-fg); font-size: 12px; }
-details.tt-box[open] summary::before { content: "▾"; }
-details.tt-box .tt { padding: 0 16px 16px; }
-.tt-title { font-weight: 700; font-size: 15px; }
-.tt-sum { font-size: 13px; color: var(--muted-fg); }
-.tt { width: 100%; max-width: 420px; user-select: none; -webkit-user-select: none; touch-action: none; }
+.tt { width: 100%; user-select: none; -webkit-user-select: none; touch-action: none; }
 .tt-row { display: flex; align-items: center; gap: 8px; }
-.tt-row .h { line-height: 1; width: 22px; text-align: right; font-size: 11px; color: var(--muted-fg); font-variant-numeric: tabular-nums; }
+.tt-row .h { line-height: 1; width: 20px; text-align: right; font-size: 11px; color: var(--muted-fg); font-variant-numeric: tabular-nums; }
 .tt-cells { flex: 1; display: grid; grid-template-columns: repeat(6, 1fr); border-left: 1px solid var(--border); background: var(--card); }
-@media (pointer: coarse) { .tt-cells button { height: 20px; } }
+@media (pointer: coarse) { .tt-cells button { height: 24px; } }
 .tt-row:first-child .tt-cells { border-top: 1px solid var(--border); }
-.tt-cells button { height: 14px; border: 0; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); background: none; padding: 0; min-width: 0; cursor: pointer; }
+.tt-cells button { height: 20px; border: 0; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); background: none; padding: 0; min-width: 0; cursor: pointer; }
 .tt-cells button[aria-disabled="true"] { cursor: default; }
 .swatch { display: inline-block; width: 12px; height: 12px; border-radius: 3px; flex: none; }
 .totals { list-style: none; padding: 0; margin: 12px 0 0; display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 14px; }
