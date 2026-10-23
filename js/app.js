@@ -1,10 +1,10 @@
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js?v=202610230940";
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js?v=202610231209";
 import {
   MAX_MOODS, HOURS, SLOTS_PER_HOUR, WEATHER, addMood, slotIndex, paintRange, minutesByLabel, durationText, shortDuration,
   draftKey, readDraft, searchEntries, monthlyReport, ymd, parseDay, addDays, isDay, monthCells, safeColor,
   kstParts, yearMark, clockText, clockOffset, plainText, readingSlots, mergeReading,
-} from "./diary.js?v=202610230940";
-import { richEditor, toHtml } from "./richtext.js?v=202610230940";
+} from "./diary.js?v=202610231209";
+import { richEditor, toHtml } from "./richtext.js?v=202610231209";
 
 const BUCKET = "diary-photos";
 const app = document.getElementById("app");
@@ -102,6 +102,7 @@ function shell(current, inner, { wide = true, headExtra = "" } = {}) {
       <div class="brand"><h1><a href="#/" aria-label="첫 화면으로">${brandMark()}</a></h1><time class="brand-clock" data-clock>${clockText(nowMs())}</time></div>
       ${headExtra}
       <div class="who">
+        <a class="btn ghost sm meiro-btn" href="/" title="meiro.kr 처음으로">MEIRO</a>
         <span>${esc(name)}</span>
         ${state.isAdmin ? '<a class="btn ghost sm" href="#/admin">가입 승인</a>' : ""}
         ${themeButton()}
@@ -168,7 +169,7 @@ async function syncClock() {
 
 function renderHome() {
   document.title = "STDL — 나의 하루를 적어요";
-  app.innerHTML = `${themeButton("corner")}<main class="hero">
+  app.innerHTML = `<a class="home-link" href="/" title="meiro.kr 처음으로">← MEIRO</a>${themeButton("corner")}<main class="hero">
     <p class="eyebrow">MY DIARY</p>
     <h1 class="mark">${brandMark()}</h1>
     <p class="clock"><time data-clock></time><span data-clock-src>한국 표준시</span></p>
@@ -183,7 +184,7 @@ function renderAuth() {
   document.title = "로그인 — 일기장";
   let mode = "in";
   const draw = () => {
-    app.innerHTML = `${themeButton("corner")}<main class="auth"><div class="paper">
+    app.innerHTML = `<a class="home-link" href="/" title="meiro.kr 처음으로">← MEIRO</a>${themeButton("corner")}<main class="auth"><div class="paper">
       <h1><a href="#/">일기장</a></h1>
       <p class="muted small" style="text-align:center;margin:8px 0 0">${mode === "in" ? "다시 오신 걸 환영해요" : "새 일기장을 만들어요"}</p>
       <form id="auth-form">
@@ -739,7 +740,7 @@ async function loadThumbs() {
 /* ---------- 가입 승인 ---------- */
 async function renderAdmin() {
   document.title = "가입 승인 — 일기장";
-  app.innerHTML = `<main class="wrap narrow"><header class="top"><div class="brand"><h1><a href="#/" aria-label="첫 화면으로">${brandMark()}</a></h1><time class="brand-clock" data-clock>${clockText(nowMs())}</time></div><a class="btn ghost sm" href="#/calendar">달력으로</a></header>
+  app.innerHTML = `<main class="wrap narrow"><header class="top"><div class="brand"><h1><a href="#/" aria-label="첫 화면으로">${brandMark()}</a></h1><time class="brand-clock" data-clock>${clockText(nowMs())}</time></div><span class="who"><a class="btn ghost sm meiro-btn" href="/" title="meiro.kr 처음으로">MEIRO</a><a class="btn ghost sm" href="#/calendar">달력으로</a></span></header>
     <h2 class="page-title">가입 승인</h2><ul class="paper people" id="people"></ul></main>`;
   const draw = async () => {
     const { data } = await sb.from("profiles").select("id, nickname, email, approved, created_at").order("created_at", { ascending: false });

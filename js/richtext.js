@@ -1,5 +1,5 @@
 // 본문 서식: 굵게, 기울임, 취소선, 형광펜, 글씨 색. 저장·표시 전에 허용한 서식만 남김
-import { RICH_MARK, isRich, plainText } from "./diary.js?v=202610230940";
+import { RICH_MARK, isRich, plainText } from "./diary.js?v=202610231209";
 
 export const HIGHLIGHTS = [
   { name: "노랑", value: "rgba(255, 212, 0, 0.45)" },
