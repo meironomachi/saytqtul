@@ -1,7 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { format } from "date-fns";
+import { addDays, format } from "date-fns";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { ko } from "date-fns/locale";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,15 +14,24 @@ import { useLabels } from "@/components/diary/LabelManager";
 import { MoodEditor } from "@/components/diary/MoodEditor";
 import { TimetableGrid } from "@/components/diary/TimetableGrid";
 import { Photos, removePhotos } from "@/components/diary/Photos";
-import type { Mood, Timetable } from "@/lib/diary";
+import { draftKey, readDraft, type Mood, type Timetable, type Weather } from "@/lib/diary";
+import { useEntryDraft } from "@/hooks/use-entry-draft";
+import { WeatherPicker } from "@/components/diary/WeatherPicker";
+import { DiaryNav } from "@/components/diary/DiaryNav";
 
 export const Route = createFileRoute("/_authenticated/calendar")({
+  validateSearch: (search: Record<string, unknown>): { date?: string } => {
+    const value = typeof search['date'] === "string" ? search['date'] : undefined;
+    return value && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00`)) ? { date: value } : {};
+  },
   head: () => ({
     meta: [
       { title: "달력 — 일기장" },
       { name: "description", content: "날짜를 골라 일기를 쓰고 읽어요" },
       { property: "og:title", content: "달력 — 일기장" },
       { property: "og:description", content: "날짜를 골라 일기를 쓰고 읽어요" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: CalendarPage,
@@ -33,7 +43,14 @@ function CalendarPage() {
   const { user } = Route.useRouteContext();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const [selected, setSelected] = useState<Date>(new Date());
+  const search = Route.useSearch();
+  const selected = search.date ? new Date(`${search.date}T00:00:00`) : new Date();
+  const [month, setMonth] = useState(selected);
+  function selectDate(d: Date) {
+    setMonth(d);
+    navigate({ to: "/calendar", search: { date: ymd(d) }, replace: true });
+  }
+  useEffect(() => { if (search.date) setMonth(new Date(`${search.date}T00:00:00`)); }, [search.date]);
 
   const { data: profile } = useQuery({
     queryKey: ["profile", user.id],
@@ -65,7 +82,7 @@ function CalendarPage() {
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-10">
-      <header className="mb-8 flex items-center justify-between">
+      <header className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-3xl font-bold">일기장</h1>
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
           <span>{profile?.nickname || user.email}</span>
@@ -79,26 +96,29 @@ function CalendarPage() {
           </Button>
         </div>
       </header>
+      <DiaryNav />
       {profile && !profile.approved ? (
         <div className="paper p-10 text-center">
           <h2 className="text-xl font-bold">승인을 기다리고 있어요</h2>
           <p className="mt-2 text-muted-foreground">관리자가 가입을 승인하면 일기를 쓸 수 있어요.</p>
         </div>
       ) : (
-      <div className="grid gap-6 md:grid-cols-[auto_1fr]">
+      <div className="grid items-start gap-6 md:grid-cols-[auto_minmax(0,1fr)]">
         <div className="paper h-fit p-2">
           <Calendar
             mode="single"
             locale={ko}
             selected={selected}
-            onSelect={(d) => d && setSelected(d)}
+             month={month}
+             onMonthChange={setMonth}
+             onSelect={(d) => d && selectDate(d)}
             modifiers={{ written: dates }}
             modifiersClassNames={{ written: "[&_button]:underline [&_button]:decoration-primary [&_button]:decoration-2 [&_button]:underline-offset-4 [&_button]:font-bold" }}
             className="bg-transparent [--cell-size:2.6rem]"
           />
           <p className="px-3 pb-2 text-xs text-muted-foreground">밑줄 친 날은 일기를 쓴 날이에요</p>
         </div>
-        <EntryPanel key={ymd(selected)} date={selected} userId={user.id} nickname={profile?.nickname} />
+         <div className="min-w-0"><div className="mb-3 flex items-center justify-between gap-2"><Button variant="outline" size="sm" onClick={() => selectDate(addDays(selected, -1))}><ChevronLeft className="size-4" />어제</Button><Button variant="ghost" size="sm" onClick={() => selectDate(new Date())}>오늘</Button><Button variant="outline" size="sm" onClick={() => selectDate(addDays(selected, 1))}>내일<ChevronRight className="size-4" /></Button></div><EntryPanel key={ymd(selected)} date={selected} userId={user.id} nickname={profile?.nickname} /></div>
       </div>
       )}
     </main>
@@ -114,20 +134,27 @@ function EntryPanel({ date, userId, nickname }: { date: Date; userId: string; ni
   const [moods, setMoods] = useState<Mood[]>([]);
   const [timetable, setTimetable] = useState<Timetable>({});
   const [photos, setPhotos] = useState<string[]>([]);
+  const [weather, setWeather] = useState<Weather | null>(null);
+  const [ready, setReady] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [restored, setRestored] = useState(false);
+  const { status, clearDraft } = useEntryDraft(userId, day, { title, content, moods, timetable, photos, weather }, ready && editing);
   const [comment, setComment] = useState("");
   const { data: labels = [] } = useLabels();
 
   const { data: entry, isLoading } = useQuery({
-    queryKey: ["entry", day],
+    queryKey: ["entry", day, userId],
     queryFn: async () =>
-      (await supabase.from("entries").select("*").eq("entry_date", day).maybeSingle()).data,
+      { const { data, error } = await supabase.from("entries").select("*").eq("entry_date", day).eq("user_id", userId).maybeSingle(); if (error) throw error; return data; },
   });
 
   const { data: comments = [] } = useQuery({
     queryKey: ["comments", entry?.id],
     enabled: !!entry,
-    queryFn: async () =>
-      (await supabase.from("comments").select("*").eq("entry_id", entry!.id).order("created_at")).data ?? [],
+    queryFn: async () => {
+      if (!entry) return [];
+      return (await supabase.from("comments").select("*").eq("entry_id", entry.id).order("created_at")).data ?? [];
+    },
   });
 
   function resetFromEntry() {
@@ -136,30 +163,43 @@ function EntryPanel({ date, userId, nickname }: { date: Date; userId: string; ni
     setMoods((entry?.moods as Mood[] | undefined) ?? []);
     setTimetable((entry?.timetable as Timetable | undefined) ?? {});
     setPhotos(entry?.photos ?? []);
+    setWeather((entry?.weather as Weather | null) ?? null);
   }
 
   useEffect(() => {
-    if (entry) resetFromEntry();
-    if (!isLoading && !entry) setEditing(true);
-  }, [entry, isLoading]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (isLoading || ready) return;
+    resetFromEntry();
+    let draft = null;
+    try { draft = readDraft(localStorage.getItem(draftKey(userId, day)), entry?.updated_at); } catch { /* Local drafts are optional. */ }
+    if (draft) {
+      setTitle(draft.title); setContent(draft.content); setMoods(draft.moods); setTimetable(draft.timetable); setPhotos(draft.photos); setWeather(draft.weather);
+      setRestored(true); setEditing(true);
+    } else setEditing(!entry);
+    setReady(true);
+  }, [entry, isLoading, ready, day, userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function save() {
     if (!content.trim()) {
       toast.error("내용을 적어 주세요.");
       return;
     }
-    const fields = { title, content, moods, timetable, photos };
+    if (saving) return;
+    setSaving(true);
+    const fields = { title, content, moods, timetable, photos, weather };
     const res = entry
       ? await supabase.from("entries").update({ ...fields, updated_at: new Date().toISOString() }).eq("id", entry.id)
       : await supabase.from("entries").insert({ ...fields, entry_date: day, user_id: userId });
+    setSaving(false);
     if (res.error) {
       toast.error("저장하지 못했어요.");
       return;
     }
     toast.success("저장했어요");
+    clearDraft(); setRestored(false);
     setEditing(false);
     qc.invalidateQueries({ queryKey: ["entry", day] });
     qc.invalidateQueries({ queryKey: ["entry-dates"] });
+    qc.invalidateQueries({ queryKey: ["diary-entries"] });
   }
 
   async function removeEntry() {
@@ -168,9 +208,11 @@ function EntryPanel({ date, userId, nickname }: { date: Date; userId: string; ni
     if (error) { toast.error("삭제하지 못했어요."); return; }
     await removePhotos(entry.photos ?? []);
     toast.success("삭제했어요");
-    setTitle(""); setContent(""); setMoods([]); setTimetable({}); setPhotos([]);
+    clearDraft(); setRestored(false);
+    setTitle(""); setContent(""); setMoods([]); setTimetable({}); setPhotos([]); setWeather(null); setEditing(true);
     qc.invalidateQueries({ queryKey: ["entry", day] });
     qc.invalidateQueries({ queryKey: ["entry-dates"] });
+    qc.invalidateQueries({ queryKey: ["diary-entries"] });
   }
 
   async function addComment() {
@@ -194,7 +236,9 @@ function EntryPanel({ date, userId, nickname }: { date: Date; userId: string; ni
       <p className="text-sm text-muted-foreground">{format(date, "yyyy년 M월 d일 EEEE", { locale: ko })}</p>
       {isLoading ? null : editing ? (
         <div className="mt-4 space-y-6">
+          {(restored || status) && <p role="status" className="text-xs text-muted-foreground">{status === "error" ? "임시저장을 사용할 수 없어요. 저장 버튼으로 저장해 주세요." : status === "pending" ? "임시저장 중…" : status === "saved" ? "이 기기에 임시저장됨" : "임시저장한 내용을 불러왔어요"}</p>}
           <Input placeholder="제목 (선택)" value={title} onChange={(e) => setTitle(e.target.value)} className="font-serif text-lg" />
+          <WeatherPicker value={weather} onChange={setWeather} />
           <MoodEditor labels={labels} moods={moods} onChange={setMoods} />
           <Textarea
             placeholder="오늘 있었던 일을 적어 보세요…"
@@ -206,15 +250,16 @@ function EntryPanel({ date, userId, nickname }: { date: Date; userId: string; ni
           <TimetableGrid labels={labels} value={timetable} onChange={setTimetable} />
           <div className="flex justify-end gap-2">
             {entry && (
-              <Button variant="ghost" onClick={() => { resetFromEntry(); setEditing(false); }}>
+              <Button variant="ghost" onClick={() => { clearDraft(); setRestored(false); resetFromEntry(); setEditing(false); }}>
                 취소
               </Button>
             )}
-            <Button onClick={save}>저장</Button>
+            <Button onClick={save} disabled={saving}>{saving ? "저장 중…" : "저장"}</Button>
           </div>
         </div>
       ) : entry ? (
         <>
+          <div className="mt-3"><WeatherPicker value={weather} readOnly /></div>
           <div className="mt-2 flex items-start justify-between gap-4">
             <h2 className="text-2xl font-bold">{entry.title || "제목 없음"}</h2>
             <div className="flex gap-2">

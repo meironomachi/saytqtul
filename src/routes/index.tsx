@@ -8,6 +8,8 @@ export const Route = createFileRoute("/")({
       { name: "description", content: "달력에서 날짜를 골라 하루를 기록하고 다시 읽어보는 나만의 일기장" },
       { property: "og:title", content: "일기장" },
       { property: "og:description", content: "달력에서 날짜를 골라 하루를 기록하는 나만의 일기장" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Index,

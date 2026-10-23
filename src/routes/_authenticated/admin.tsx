@@ -11,6 +11,8 @@ export const Route = createFileRoute("/_authenticated/admin")({
       { name: "description", content: "가입 요청을 승인하거나 취소해요" },
       { property: "og:title", content: "가입 승인 — 일기장" },
       { property: "og:description", content: "가입 요청을 승인하거나 취소해요" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: AdminPage,

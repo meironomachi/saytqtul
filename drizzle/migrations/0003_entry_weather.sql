@@ -1,0 +1,2 @@
+ALTER TABLE public.entries ADD COLUMN weather text;
+ALTER TABLE public.entries ADD CONSTRAINT entries_weather_valid CHECK (weather IS NULL OR weather IN ('sunny', 'cloudy', 'rainy', 'snowy', 'windy')) NOT VALID;
