@@ -119,7 +119,7 @@ function bindShell() {
     const root = document.documentElement;
     const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
     root.dataset.theme = dark ? "light" : "dark";
-    try { localStorage.setItem("diary-theme", root.dataset.theme); } catch { /* 테마 기억은 선택 사항 */ }
+    try { localStorage.setItem("meiro-theme", root.dataset.theme); } catch { /* 테마 기억은 선택 사항 */ }
   });
 }
 
