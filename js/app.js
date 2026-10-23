@@ -1,10 +1,10 @@
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js?v=202610231527";
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js?v=202610231540";
 import {
   MAX_MOODS, HOURS, SLOTS_PER_HOUR, WEATHER, addMood, slotIndex, paintRange, minutesByLabel, durationText, shortDuration,
   draftKey, readDraft, searchEntries, monthlyReport, ymd, parseDay, addDays, isDay, monthCells, safeColor,
   kstParts, yearMark, clockText, clockOffset, plainText, readingSlots, mergeReading,
-} from "./diary.js?v=202610231527";
-import { richEditor, toHtml } from "./richtext.js?v=202610231527";
+} from "./diary.js?v=202610231540";
+import { richEditor, toHtml } from "./richtext.js?v=202610231540";
 
 const BUCKET = "diary-photos";
 const app = document.getElementById("app");
@@ -104,7 +104,7 @@ function shell(current, inner, { wide = true, headExtra = "" } = {}) {
       <div class="who">
         <a class="btn ghost sm meiro-btn" href="/" title="meiro.kr 처음으로">MEIRO</a>
         <span>${esc(name)}</span>
-        ${state.isAdmin ? '<a class="btn ghost sm" href="#/admin">회원 관리</a>' : ""}
+        <a class="btn ghost sm" href="/account/?from=saytqtul">회원 관리</a>
         ${themeButton()}
         <button class="btn ghost sm" type="button" data-act="logout">로그아웃</button>
       </div>
@@ -794,60 +794,8 @@ async function loadThumbs() {
   }
 }
 
-/* ---------- 가입 승인 ---------- */
-async function renderAdmin() {
-  document.title = "회원 관리 — 일기장";
-  app.innerHTML = `<main class="wrap narrow"><header class="top"><div class="brand"><h1><a href="#/" aria-label="첫 화면으로">${brandMark()}</a></h1><time class="brand-clock" data-clock>${clockText(nowMs())}</time></div><span class="who"><a class="btn ghost sm meiro-btn" href="/" title="meiro.kr 처음으로">MEIRO</a><a class="btn ghost sm" href="#/calendar">달력으로</a></span></header>
-    <h2 class="page-title">회원 관리</h2><ul class="paper people" id="people"></ul></main>`;
-  const draw = async () => {
-    const { data } = await sb.from("profiles").select("id, nickname, email, approved, created_at").order("created_at", { ascending: false });
-    const people = data ?? [];
-    $("#people").innerHTML = !state.isAdmin || !people.length ? '<li class="muted" style="justify-content:center">관리자만 볼 수 있는 화면이에요.</li>'
-      : people.map((p) => `<li><div><p style="font-weight:600">${esc(p.nickname || "이름 없음")}</p><p class="muted small">${esc(p.email)}</p></div>
-        ${p.id === state.user.id ? '<span class="muted small">관리자 (나)</span>'
-          : `<span class="person-acts">${p.approved ? `<button class="btn outline sm" type="button" data-id="${p.id}" data-v="false">승인 취소</button>`
-            : `<button class="btn primary sm" type="button" data-id="${p.id}" data-v="true">승인</button>`}<button class="btn ghost sm danger" type="button" data-remove="${p.id}">계정 삭제</button></span>`}</li>`).join("");
-    $$("[data-remove]").forEach((b) => b.onclick = () => removeAccount(people.find((p) => p.id === b.dataset.remove), draw));
-    $$("[data-id]").forEach((b) => b.onclick = async () => {
-      const approved = b.dataset.v === "true";
-      const { error } = await sb.rpc("approve_user", { _user_id: b.dataset.id, _approved: approved });
-      if (error) { toast("관리자만 승인할 수 있어요.", "error"); return; }
-      toast(approved ? "승인했어요" : "승인을 취소했어요");
-      draw();
-    });
-  };
-  draw();
-}
-
-/** 계정 삭제: 닉네임을 그대로 입력해야 지워짐. 일기·사진·서재·가계부·노트 기록도 함께 지워짐 */
-function removeAccount(p, done) {
-  const name = p.nickname || p.email;
-  const dlg = document.createElement("dialog");
-  dlg.innerHTML = `<form method="dialog" class="danger-form">
-    <h2>계정 삭제</h2>
-    <p><b>${esc(name)}</b> (${esc(p.email)}) 계정을 지워요. 이 사람의 일기, 사진, 댓글, 서재, 가계부, 노트 기록도 모두 지워지고 <b>되돌릴 수 없어요.</b></p>
-    <label class="field"><span>확인을 위해 <b>${esc(name)}</b>을(를) 그대로 입력해 주세요</span><input class="input" id="confirm-name" autocomplete="off"></label>
-    <div class="actions"><button class="btn ghost" type="button" value="cancel">취소</button><button class="btn danger-fill" type="submit" id="do-remove" disabled>삭제</button></div>
-  </form>`;
-  document.body.append(dlg);
-  $("#confirm-name", dlg).oninput = (e) => { $("#do-remove", dlg).disabled = e.target.value.trim() !== name; };
-  $("button[value=cancel]", dlg).onclick = () => dlg.close();
-  dlg.addEventListener("close", () => dlg.remove());
-  $("form", dlg).onsubmit = async (e) => {
-    e.preventDefault();
-    $("#do-remove", dlg).disabled = true;
-    const { data: photos, error } = await sb.rpc("admin_delete_user", { _user_id: p.id });
-    if (error) { $("#do-remove", dlg).disabled = false; toast("삭제하지 못했어요. 관리자만 지울 수 있어요.", "error"); return; }
-    if (photos?.length) await sb.storage.from(BUCKET).remove(photos); // 사진 파일도 정리
-    dlg.close();
-    toast(`${name} 계정을 지웠어요`);
-    done();
-  };
-  dlg.showModal();
-}
-
 /* ---------- 라우터 ---------- */
-const PRIVATE = { "/calendar": renderCalendar, "/reports": renderReports, "/search": renderSearch, "/timeline": renderTimeline, "/admin": renderAdmin };
+const PRIVATE = { "/calendar": renderCalendar, "/reports": renderReports, "/search": renderSearch, "/timeline": renderTimeline };
 
 async function route() {
   leaveHook?.();
@@ -856,6 +804,7 @@ async function route() {
   if (path === "/find-id") return renderFindId();
   if (path === "/forgot") return renderForgot();
   if (path === "/reset") return state.user ? renderReset() : go("#/forgot", true);
+  if (path === "/admin") return location.replace("/account/?from=saytqtul#/members"); // 회원 관리는 meiro.kr/account/로 옮김
   if (path === "/" || !(path in PRIVATE || path === "/auth")) return renderHome();
   if (path === "/auth") {
     if (state.user) return go("#/calendar", true);
