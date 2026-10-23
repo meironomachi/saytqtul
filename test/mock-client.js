@@ -72,7 +72,8 @@ const session = { user: { id: uid, email: "me@example.com" } };
 const signedIn = !location.hash.includes("/auth");
 window.__DIARY_TEST_CLIENT__ = {
   from: (t) => new Query(t),
-  rpc: async (name, args) => { const p = db.profiles.find((x) => x.id === args._user_id); if (p) p.approved = args._approved; return { error: null }; },
+  rpc: async (name, args) => {
+    if (name === "server_time") return { data: new Date().toISOString(), error: null }; const p = db.profiles.find((x) => x.id === args._user_id); if (p) p.approved = args._approved; return { error: null }; },
   auth: {
     getSession: async () => ({ data: { session: signedIn ? session : null } }),
     onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),

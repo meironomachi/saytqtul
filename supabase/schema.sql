@@ -154,3 +154,8 @@ CREATE POLICY "own photos insert" ON storage.objects FOR INSERT TO authenticated
 DROP POLICY IF EXISTS "own photos delete" ON storage.objects;
 CREATE POLICY "own photos delete" ON storage.objects FOR DELETE TO authenticated
   USING (bucket_id = 'diary-photos' AND (storage.foldername(name))[1] = auth.uid()::text AND public.is_approved(auth.uid()));
+
+-- 첫 화면 시계용 서버 시각 (Supabase 서버는 NTP로 표준시에 맞춰져 있음)
+CREATE OR REPLACE FUNCTION public.server_time()
+RETURNS timestamptz LANGUAGE sql STABLE AS $$ SELECT clock_timestamp() $$;
+GRANT EXECUTE ON FUNCTION public.server_time() TO anon, authenticated;

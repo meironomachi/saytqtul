@@ -107,3 +107,26 @@ export function monthCells(year, month) {
 }
 
 export const safeColor = (c) => (/^#[0-9a-f]{6}$/i.test(c) ? c : "#0031B0");
+
+/* ---------- 첫 화면 시계 ---------- */
+/** 한국 시간(UTC+9, 서머타임 없음)의 연월일시분초 */
+export function kstParts(ms) {
+  const d = new Date(ms + 9 * 3600 * 1000);
+  return { y: d.getUTCFullYear(), mo: d.getUTCMonth() + 1, d: d.getUTCDate(), h: d.getUTCHours(), mi: d.getUTCMinutes(), s: d.getUTCSeconds() };
+}
+
+/** 2026 → ’26 */
+export const yearMark = (y) => `’${String(y).slice(-2)}`;
+
+export function clockText(ms) {
+  const t = kstParts(ms), p = (n) => String(n).padStart(2, "0");
+  return `${t.y}년 ${t.mo}월 ${t.d}일 ${p(t.h)}:${p(t.mi)}:${p(t.s)}`;
+}
+
+/** 서버 시각 표본들 중 왕복이 가장 짧은 것으로 기기 시계와의 차이(ms)를 구함 */
+export function clockOffset(samples) {
+  const ok = samples.filter((x) => Number.isFinite(x.server) && x.received >= x.sent);
+  if (!ok.length) return null;
+  const best = ok.reduce((a, b) => (b.received - b.sent < a.received - a.sent ? b : a));
+  return { offset: best.server - (best.sent + best.received) / 2, error: (best.received - best.sent) / 2 };
+}

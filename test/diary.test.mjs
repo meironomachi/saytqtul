@@ -61,3 +61,20 @@ test("달력 칸과 날짜 도우미", () => {
   assert.equal(isDay("2026-13-99"), false);
   assert.equal(safeColor("red;x"), "#0031B0");
 });
+
+test("첫 화면 시계: 한국 시간, 연도 표시, 서버 시각 보정", async () => {
+  const { kstParts, yearMark, clockText, clockOffset } = await import("../js/diary.js");
+  // 2026-12-31 15:00:05 UTC = 2027-01-01 00:00:05 KST
+  const ms = Date.UTC(2026, 11, 31, 15, 0, 5);
+  assert.deepEqual(kstParts(ms), { y: 2027, mo: 1, d: 1, h: 0, mi: 0, s: 5 });
+  assert.equal(yearMark(2026), "’26");
+  assert.equal(yearMark(2027), "’27");
+  assert.equal(clockText(ms), "2027년 1월 1일 00:00:05");
+  const r = clockOffset([
+    { sent: 1000, received: 1400, server: 6000 },
+    { sent: 2000, received: 2100, server: 7300 }, // 왕복이 가장 짧음 → 중간 2050 기준 +5250
+    { sent: 3000, received: 2900, server: 1 }, // 잘못된 표본은 버림
+  ]);
+  assert.deepEqual(r, { offset: 5250, error: 50 });
+  assert.equal(clockOffset([]), null);
+});

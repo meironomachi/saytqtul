@@ -2,6 +2,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 import {
   MAX_MOODS, HOURS, SLOTS_PER_HOUR, WEATHER, addMood, slotIndex, paintRange, minutesByLabel, durationText, shortDuration,
   draftKey, readDraft, searchEntries, monthlyReport, ymd, parseDay, addDays, isDay, monthCells, safeColor,
+  kstParts, yearMark, clockText, clockOffset,
 } from "./diary.js";
 
 const BUCKET = "diary-photos";
@@ -131,14 +132,47 @@ document.addEventListener("click", (e) => {
 const waiting = () => `<div class="paper notice"><h2>승인을 기다리고 있어요</h2><p>관리자가 가입을 승인하면 일기를 쓸 수 있어요.</p></div>`;
 
 /* ---------- 첫 화면 ---------- */
+// 서버(표준시에 맞춰진 Supabase) 시각과 기기 시계의 차이. 한 번 맞추면 다시 쓰지 않음
+let clock = null;
+async function syncClock() {
+  if (clock) return clock;
+  const samples = [];
+  for (let i = 0; i < 3; i++) {
+    const sent = Date.now();
+    const { data, error } = await sb.rpc("server_time");
+    const received = Date.now();
+    if (error) break;
+    samples.push({ sent, received, server: Date.parse(data) });
+  }
+  clock = clockOffset(samples) ?? { offset: 0, error: null };
+  return clock;
+}
+
 function renderHome() {
-  document.title = "일기장 — 나의 하루를 적어요";
+  document.title = "STDL — 나의 하루를 적어요";
+  const now = () => Date.now() + (clock?.offset ?? 0);
   app.innerHTML = `${themeButton("corner")}<main class="hero">
     <p class="eyebrow">MY DIARY</p>
-    <h1>일기장</h1>
+    <h1 class="mark">STDL <span id="year">${yearMark(kstParts(now()).y)}</span></h1>
+    <p class="clock"><time id="clock">${clockText(now())}</time><span id="clock-src">한국 표준시</span></p>
     <p>오늘 하루는 어땠나요?</p>
     <a class="btn primary lg" href="#/calendar">적으러 가기</a>
   </main>`;
+  let timer;
+  const tick = () => {
+    const t = now();
+    $("#clock").textContent = clockText(t);
+    $("#year").textContent = yearMark(kstParts(t).y);
+    timer = setTimeout(tick, 1000 - (t % 1000) + 5); // 초가 바뀌는 순간에 맞춤
+  };
+  tick();
+  leaveHook = () => clearTimeout(timer);
+  syncClock().then((c) => {
+    const src = $("#clock-src");
+    if (!src) return;
+    src.textContent = c.error === null ? "기기 시계 기준" : `표준시 서버 기준 · 오차 ±${(c.error / 1000).toFixed(2)}초`;
+    clearTimeout(timer); tick();
+  });
 }
 
 /* ---------- 로그인 / 가입 ---------- */
