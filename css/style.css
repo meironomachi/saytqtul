@@ -281,3 +281,17 @@ input[type="color"] { width: 36px; height: 36px; flex: none; padding: 2px; borde
   height: 36px; display: inline-flex; align-items: center; padding: 0 14px; border-radius: 999px; border: 1px solid var(--border);
   background: var(--card); color: var(--fg); font-size: 13px; font-weight: 800; letter-spacing: .04em; text-decoration: none; }
 .home-link:hover { background: var(--muted); }
+
+/* 아이디·비밀번호 찾기 */
+.find-links { display: flex; justify-content: center; gap: 8px; margin: 14px 0 0; font-size: 13px; color: var(--muted-fg); }
+.find-links a { color: var(--muted-fg); text-decoration: none; }
+.find-links a:hover { color: var(--fg); text-decoration: underline; }
+.auth-sub { text-align: center; margin: 10px 0 0; line-height: 1.6; }
+.auth-result { margin: 18px 0 0; padding: 12px 14px; border-radius: 10px; background: var(--muted); font-size: 14px; line-height: 1.7; text-align: center; }
+
+/* 회원 관리 */
+.person-acts { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
+.danger-form { display: grid; gap: 14px; }
+.danger-form p { margin: 0; line-height: 1.6; font-size: 14px; }
+.danger-form .actions { display: flex; justify-content: flex-end; gap: 8px; }
+.btn.danger-fill { background: var(--danger); color: #fff; }

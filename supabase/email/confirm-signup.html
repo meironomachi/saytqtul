@@ -1,0 +1,37 @@
+<!-- Supabase → Authentication → Emails → Confirm signup 에 붙여 넣기
+     제목(Subject): [STDL] 가입을 마무리해 주세요 -->
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>STDL 가입 확인</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f5f9;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f5f9;padding:32px 12px;">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border-radius:16px;border:1px solid #e3e5ec;font-family:-apple-system,'Apple SD Gothic Neo','Malgun Gothic','Pretendard',sans-serif;color:#1d2230;">
+        <tr><td style="padding:32px 32px 8px;">
+          <p style="margin:0;font-size:12px;letter-spacing:4px;color:#6b7180;">MEIRO.KR</p>
+          <p style="margin:6px 0 0;font-size:30px;font-weight:800;letter-spacing:-0.5px;">STDL <span style="color:#0031b0;">일기장</span></p>
+        </td></tr>
+        <tr><td style="padding:16px 32px 8px;font-size:15px;line-height:1.75;">
+          <p style="margin:0 0 12px;">{{ if .Data.nickname }}<b>{{ .Data.nickname }}</b>님, {{ end }}가입해 주셔서 고마워요.</p>
+          <p style="margin:0;">아래 버튼을 누르면 가입이 마무리돼요. 그다음 관리자가 승인하면 일기장, 圖書館, $TDL을 쓸 수 있어요.</p>
+        </td></tr>
+        <tr><td align="center" style="padding:24px 32px;">
+          <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#0031b0;color:#ffffff;text-decoration:none;font-weight:700;font-size:16px;padding:14px 36px;border-radius:999px;">가입 마무리하기</a>
+        </td></tr>
+        <tr><td style="padding:0 32px 28px;font-size:13px;line-height:1.7;color:#6b7180;">
+          <p style="margin:0 0 8px;">버튼이 눌리지 않으면 이 주소를 복사해 브라우저에 붙여 넣어 주세요.</p>
+          <p style="margin:0;word-break:break-all;"><a href="{{ .ConfirmationURL }}" style="color:#0031b0;">{{ .ConfirmationURL }}</a></p>
+        </td></tr>
+        <tr><td style="padding:18px 32px;border-top:1px solid #e3e5ec;font-size:12px;line-height:1.7;color:#8a8f9c;">
+          직접 가입하지 않았다면 이 메일은 무시해도 괜찮아요.<br>{{ .Email }} 로 보낸 메일이에요.
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>

@@ -80,13 +80,17 @@ const signedIn = !location.hash.includes("/auth");
 window.__DIARY_TEST_CLIENT__ = {
   from: (t) => new Query(t),
   rpc: async (name, args) => {
-    if (name === "server_time") return { data: new Date().toISOString(), error: null }; const p = db.profiles.find((x) => x.id === args._user_id); if (p) p.approved = args._approved; return { error: null }; },
+    if (name === "server_time") return { data: new Date().toISOString(), error: null };
+    if (name === "find_login_email") return { data: db.profiles.filter((p) => p.nickname === args._nickname.trim()).map((p) => p.email.replace(/^([^@]{1,2})[^@]*/, "$1***")), error: null };
+    if (name === "admin_delete_user") { db.profiles = db.profiles.filter((p) => p.id !== args._user_id); return { data: [], error: null }; } const p = db.profiles.find((x) => x.id === args._user_id); if (p) p.approved = args._approved; return { error: null }; },
   auth: {
     getSession: async () => ({ data: { session: signedIn ? session : null } }),
     onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
     signInWithPassword: async () => ({ error: { message: "test" } }),
     signUp: async () => ({ data: {}, error: null }),
     signOut: async () => ({ error: null }),
+    resetPasswordForEmail: async () => ({ error: null }),
+    updateUser: async () => ({ error: null }),
   },
   storage: { from: () => ({ upload: async () => ({ error: null }), remove: async () => ({ error: null }), createSignedUrls: async (paths) => ({ data: paths.map((path) => ({ path, signedUrl: fakePhoto(path) })) }) }) },
 };
