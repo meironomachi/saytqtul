@@ -35,7 +35,8 @@ export function MoodEditor({ labels, moods, onChange, readOnly }: { labels: Labe
       )}
       <ul className="space-y-3">
         {shown.map((m) => {
-          const l = byId.get(m.label_id)!;
+          const l = byId.get(m.label_id);
+          if (!l) return null;
           return (
             <li key={m.label_id} className="flex items-center gap-3">
               <span className="w-20 shrink-0 truncate text-sm font-medium" style={{ color: l.color }}>{l.name}</span>
