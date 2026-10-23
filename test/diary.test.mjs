@@ -90,3 +90,17 @@ test("서식 있는 본문: 예전 글은 그대로, 서식 글은 글자만 뽑
   assert.equal(searchEntries(list, "형광").length, 1);
   assert.equal(searchEntries(list, "mark").length, 0); // 태그 이름으로는 안 찾아짐
 });
+
+test("독서 기록을 그날 타임테이블 칸으로 (새벽 6시 기준, 멈춘 시간 제외)", async () => {
+  const { readingSlots, mergeReading, slotIndex } = await import("../js/diary.js");
+  // 한국 21:10~21:52, 21:30~21:40 멈춤
+  const s = { started_at: "2026-10-23T12:10:00Z", ended_at: "2026-10-23T12:52:00Z", pauses: [{ from: "2026-10-23T12:30:00Z", to: "2026-10-23T12:40:00Z" }] };
+  // 21:10, 21:20 칸 + 21:40 칸(10분) + 21:50 칸은 2분이라 안 칠함
+  assert.deepEqual(readingSlots([s], "2026-10-23"), [slotIndex(21, 1), slotIndex(21, 2), slotIndex(21, 4)]);
+  // 새벽 1시 독서는 전날 일기의 25시 칸
+  const late = { started_at: "2026-10-23T16:00:00Z", ended_at: "2026-10-23T16:20:00Z", pauses: [] };
+  assert.deepEqual(readingSlots([late], "2026-10-23"), [slotIndex(25, 0), slotIndex(25, 1)]);
+  assert.deepEqual(readingSlots([late], "2026-10-24"), []);
+  // 직접 칠한 칸은 덮지 않음
+  assert.deepEqual(mergeReading({ 5: "study" }, [5, 6], "read"), { 5: "study", 6: "read" });
+});

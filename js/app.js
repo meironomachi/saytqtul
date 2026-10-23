@@ -1,10 +1,10 @@
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js?v=202610230559";
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js?v=202610230940";
 import {
   MAX_MOODS, HOURS, SLOTS_PER_HOUR, WEATHER, addMood, slotIndex, paintRange, minutesByLabel, durationText, shortDuration,
   draftKey, readDraft, searchEntries, monthlyReport, ymd, parseDay, addDays, isDay, monthCells, safeColor,
-  kstParts, yearMark, clockText, clockOffset, plainText,
-} from "./diary.js?v=202610230559";
-import { richEditor, toHtml } from "./richtext.js?v=202610230559";
+  kstParts, yearMark, clockText, clockOffset, plainText, readingSlots, mergeReading,
+} from "./diary.js?v=202610230940";
+import { richEditor, toHtml } from "./richtext.js?v=202610230940";
 
 const BUCKET = "diary-photos";
 const app = document.getElementById("app");
@@ -282,11 +282,14 @@ async function entryPanel(root, day, date, onWrittenChange) {
     title: entry?.title ?? "", content: entry?.content ?? "", moods: entry?.moods ?? [],
     timetable: entry?.timetable ?? {}, photos: entry?.photos ?? [], weather: entry?.weather ?? null,
   });
-  let f = fromEntry();
+  // STDL 圖書館에서 잰 독서 시간을 비어 있는 타임테이블 칸에 '독서'로 칠해 둠
+  const reading = await readingFor(day);
+  const withReading = (x) => (reading ? { ...x, timetable: mergeReading(x.timetable, reading.slots, reading.id) } : x);
+  let f = withReading(fromEntry());
   let restored = false;
   let draft = null;
   try { draft = readDraft(localStorage.getItem(draftKey(uid, day)), entry?.updated_at); } catch { /* 임시저장은 선택 사항 */ }
-  if (draft) { f = draft; restored = true; }
+  if (draft) { f = withReading(draft); restored = true; }
   let editing = !!draft || !entry;
 
   // 임시저장: 입력이 멈추고 0.6초 뒤 이 기기에 저장
@@ -326,7 +329,7 @@ async function entryPanel(root, day, date, onWrittenChange) {
     moodEditor($("#moods", root));
     photosBlock($("#photos", root), true);
     showTimetable(true);
-    $("#cancel", root)?.addEventListener("click", () => { clearDraft(); restored = false; f = fromEntry(); editing = false; draw(); });
+    $("#cancel", root)?.addEventListener("click", () => { clearDraft(); restored = false; f = withReading(fromEntry()); editing = false; draw(); });
     $("#save", root).onclick = save;
   }
 
@@ -549,6 +552,24 @@ async function entryPanel(root, day, date, onWrittenChange) {
   }
 
   draw();
+}
+
+/* ---------- STDL 圖書館 독서 기록 ---------- */
+const READING_LABEL = { kind: "activity", name: "독서", color: "#0b7285" };
+/** 그날 읽은 칸과 '독서' 태그. 기록이 없거나 圖書館을 아직 안 쓰면 null */
+async function readingFor(day) {
+  const start = Date.parse(`${day}T00:00:00Z`) - 9 * 3600 * 1000 + 6 * 3600 * 1000; // 그날 새벽 6시 (한국)
+  const { data, error } = await sb.from("reading_sessions").select("started_at, ended_at, pauses")
+    .gte("started_at", new Date(start - 86400000).toISOString()).lt("started_at", new Date(start + 86400000).toISOString());
+  if (error || !data?.length) return null;
+  const slots = readingSlots(data, day);
+  if (!slots.length) return null;
+  let label = state.labels.find((l) => l.kind === "activity" && l.name === READING_LABEL.name);
+  if (!label) {
+    await sb.from("labels").insert(READING_LABEL);
+    label = (await loadLabels()).find((l) => l.kind === "activity" && l.name === READING_LABEL.name);
+  }
+  return label ? { id: label.id, slots } : null;
 }
 
 /* ---------- 태그 관리 창 ---------- */

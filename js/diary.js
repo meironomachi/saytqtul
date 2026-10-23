@@ -147,3 +147,34 @@ export function plainText(content) {
     .replace(/&(amp|lt|gt|quot|#39|nbsp);/g, (m) => ENTITIES[m])
     .replace(/\n+$/, "");
 }
+
+/* ---------- STDL 圖書館 독서 기록 → 타임테이블 ---------- */
+/** 독서 기록 중 그날(새벽 6시~다음 날 6시) 타임테이블 칸. 한 칸(10분)에서 5분 이상 읽었으면 칠함 */
+export function readingSlots(sessions, day, now = Date.now()) {
+  const dayStart = Date.parse(`${day}T00:00:00Z`) - 9 * 3600 * 1000 + START_HOUR * 3600 * 1000;
+  const slotMs = 60 * 60 * 1000 / SLOTS_PER_HOUR, count = HOURS.length * SLOTS_PER_HOUR;
+  const covered = new Map();
+  for (const s of sessions) {
+    const end = s.ended_at ? Date.parse(s.ended_at) : now;
+    // 멈춘 구간을 뺀 실제로 읽은 구간
+    const pauses = (s.pauses ?? []).map((p) => [Date.parse(p.from), p.to ? Date.parse(p.to) : end]).sort((a, b) => a[0] - b[0]);
+    let cur = Date.parse(s.started_at);
+    const parts = [];
+    for (const [a, b] of pauses) { if (a > cur) parts.push([cur, Math.min(a, end)]); cur = Math.max(cur, b); }
+    if (cur < end) parts.push([cur, end]);
+    for (const [a, b] of parts) {
+      for (let i = Math.max(0, Math.floor((a - dayStart) / slotMs)); i < Math.min(count, Math.ceil((b - dayStart) / slotMs)); i++) {
+        const lo = Math.max(a, dayStart + i * slotMs), hi = Math.min(b, dayStart + (i + 1) * slotMs);
+        if (hi > lo) covered.set(i, (covered.get(i) ?? 0) + (hi - lo));
+      }
+    }
+  }
+  return [...covered].filter(([, ms]) => ms >= slotMs / 2).map(([i]) => i).sort((a, b) => a - b);
+}
+
+/** 비어 있는 칸에만 독서를 칠함 (직접 칠한 칸은 그대로) */
+export function mergeReading(timetable, slots, labelId) {
+  const next = { ...timetable };
+  for (const s of slots) if (!next[s]) next[s] = labelId;
+  return next;
+}
