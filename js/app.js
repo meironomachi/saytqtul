@@ -275,8 +275,8 @@ async function entryPanel(root, day, date, onWrittenChange) {
         <input class="input title-input" id="title" placeholder="제목 (선택)" value="${esc(f.title)}" aria-label="제목">
         <div id="weather"></div>
         <div id="moods"></div>
-        <textarea class="lined" id="content" placeholder="오늘 있었던 일을 적어 보세요…" aria-label="내용">${esc(f.content)}</textarea>
         <div id="photos"></div>
+        <textarea class="lined" id="content" placeholder="오늘 있었던 일을 적어 보세요…" aria-label="내용">${esc(f.content)}</textarea>
         <div id="timetable"></div>
         <div class="actions">
           ${entry ? '<button class="btn ghost" type="button" id="cancel">취소</button>' : ""}
@@ -305,8 +305,8 @@ async function entryPanel(root, day, date, onWrittenChange) {
         </div>
       </div>
       ${f.moods.length ? '<div id="moods" style="margin-top:24px"></div>' : ""}
-      <p class="content lined">${esc(entry.content)}</p>
       <div id="photos" style="margin-top:24px"></div>
+      <p class="content lined">${esc(entry.content)}</p>
       ${Object.keys(f.timetable).length ? '<div id="timetable" style="margin-top:24px"></div>' : ""}
       <div class="comments" id="comments"></div>`;
     $("#edit", root).onclick = () => { editing = true; draw(); };
@@ -391,7 +391,7 @@ async function entryPanel(root, day, date, onWrittenChange) {
   /* 사진 */
   async function photosBlock(el, editable) {
     if (!editable && !f.photos.length) { el.hidden = true; return; }
-    el.innerHTML = `<div class="section-head"><h3>사진</h3>${editable ? '<input type="file" accept="image/*" multiple hidden id="file"><button class="btn outline sm" type="button" id="add-photo">사진 추가</button>' : ""}</div>
+    el.innerHTML = `${editable ? '<div class="section-head"><h3>사진</h3><input type="file" accept="image/*" multiple hidden id="file"><button class="btn outline sm" type="button" id="add-photo">사진 추가</button></div>' : ""}
       <div class="photos">${f.photos.map((p) => `<div class="photo" data-p="${esc(p)}">${editable ? '<button class="btn sm danger" type="button">삭제</button>' : ""}</div>`).join("")}</div>`;
     if (editable) {
       const input = $("#file", el), btn = $("#add-photo", el);
@@ -547,13 +547,15 @@ function labelManager(kind, onDone) {
 }
 
 /* ---------- 목록 (검색, 타임라인 공용) ---------- */
-function entryList(entries) {
+function entryList(entries, { thumbs = false } = {}) {
   if (!entries.length) return '<p class="empty">일기가 없어요.</p>';
   const byId = new Map(state.labels.map((l) => [l.id, l]));
   return `<ol class="list">${entries.map((e) => {
     const w = WEATHER.find((x) => x.id === e.weather);
     const total = Object.values(minutesByLabel(e.timetable)).reduce((a, b) => a + b, 0);
-    return `<li>
+    const first = thumbs ? e.photos[0] : null;
+    return `<li class="${first ? "has-thumb" : ""}">
+      ${first ? `<a class="thumb" href="#/calendar?date=${e.entry_date}" data-p="${esc(first)}" aria-label="${e.entry_date} 일기 열기"></a>` : ""}
       <div class="row"><time>${e.entry_date.replaceAll("-", ".")}</time>${w ? `<span class="weather">${icon(w.id)}${w.name}</span>` : ""}</div>
       <a class="t" href="#/calendar?date=${e.entry_date}">${esc(e.title || "제목 없음")}</a>
       <p class="excerpt">${esc(e.content)}</p>
@@ -650,9 +652,22 @@ function renderTimeline() {
     $("main > p.muted")?.remove();
     const months = [...new Set(entries.map((e) => e.entry_date.slice(0, 7)))];
     $("main").insertAdjacentHTML("beforeend", months.length
-      ? months.map((m) => `<section><h2 class="month-head">${m.replace("-", "년 ")}월</h2>${entryList(entries.filter((e) => e.entry_date.startsWith(m)))}</section>`).join("")
+      ? months.map((m) => `<section><h2 class="month-head">${m.replace("-", "년 ")}월</h2>${entryList(entries.filter((e) => e.entry_date.startsWith(m)), { thumbs: true })}</section>`).join("")
       : entryList([]));
+    loadThumbs();
   });
+}
+
+/** 목록의 첫 사진 자리에 실제 사진을 채움 (한 번에 주소 발급) */
+async function loadThumbs() {
+  const boxes = $$(".thumb[data-p]");
+  if (!boxes.length) return;
+  const { data } = await sb.storage.from(BUCKET).createSignedUrls(boxes.map((b) => b.dataset.p), 3600);
+  const urls = new Map((data ?? []).map((d) => [d.path, d.signedUrl]));
+  for (const b of boxes) {
+    const url = urls.get(b.dataset.p);
+    if (url) b.innerHTML = `<img src="${esc(url)}" alt="" loading="lazy">`;
+  }
 }
 
 /* ---------- 가입 승인 ---------- */

@@ -30,6 +30,13 @@ for (const [d, title, content, moods, weather, ranges] of days) {
   db.entries.push({ id: `e-${d}`, user_id: uid, entry_date: d, title, content, moods: moods.map(([label_id, score]) => ({ label_id, score })),
     timetable: tt(ranges), photos: [], weather, created_at: `${d}T12:00:00Z`, updated_at: `${d}T12:00:00Z` });
 }
+// 사진이 있는 일기 (가짜 사진은 색 칠한 SVG)
+db.entries.find((e) => e.entry_date === "2026-10-21").photos = [`${uid}/dinner.jpg`, `${uid}/street.jpg`];
+db.entries.find((e) => e.entry_date === "2026-10-03").photos = [`${uid}/park.jpg`];
+const fakePhoto = (path) => {
+  const hue = [...path].reduce((a, c) => a + c.charCodeAt(0), 0) % 360;
+  return "data:image/svg+xml," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 3"><rect width="4" height="3" fill="hsl(${hue} 55% 60%)"/><circle cx="3" cy="1" r=".5" fill="hsl(${hue} 70% 85%)"/><path d="M0 3 1.5 1.4 2.6 2.4 3.2 1.9 4 3Z" fill="hsl(${hue} 45% 35%)"/></svg>`);
+};
 db.comments.push({ id: "c1", entry_id: "e-2026-10-21", user_id: uid, content: "다음에 또 가자!", created_at: "2026-10-21T22:10:00Z" });
 
 class Query {
@@ -73,5 +80,5 @@ window.__DIARY_TEST_CLIENT__ = {
     signUp: async () => ({ data: {}, error: null }),
     signOut: async () => ({ error: null }),
   },
-  storage: { from: () => ({ upload: async () => ({ error: null }), remove: async () => ({ error: null }), createSignedUrls: async () => ({ data: [] }) }) },
+  storage: { from: () => ({ upload: async () => ({ error: null }), remove: async () => ({ error: null }), createSignedUrls: async (paths) => ({ data: paths.map((path) => ({ path, signedUrl: fakePhoto(path) })) }) }) },
 };
